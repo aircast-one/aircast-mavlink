@@ -283,64 +283,73 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
       })
     })
 
-    describe('PROTOCOL_VERSION Message Round-trip', () => {
-      test('should parse and serialize PROTOCOL_VERSION message with arrays correctly using snake_case', () => {
-        const originalMessage = {
-          message_name: 'PROTOCOL_VERSION',
-          system_id: 1,
-          component_id: 1,
-          sequence: 50,
-          payload: {
-            version: 200,
-            min_version: 100,
-            max_version: 300,
-            spec_version_hash: [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08],
-            library_version_hash: [0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18],
-          },
-        }
+  })
 
-        const serializedBytes = serializer.serialize(originalMessage)
-        const parsedMessages = parser.parseBytes(serializedBytes)
+  describe('Common Dialect PROTOCOL_VERSION with snake_case', () => {
+    let parser: CommonParser
+    let serializer: CommonSerializer
 
-        expect(parsedMessages).toHaveLength(1)
-        const parsedMessage = parsedMessages[0]
+    beforeEach(() => {
+      parser = new CommonParser()
+      serializer = new CommonSerializer()
+    })
 
-        expect(parsedMessage.message_name).toBe('PROTOCOL_VERSION')
-        expect(parsedMessage.message_id).toBe(300)
-        expect(parsedMessage.payload.version).toBe(200)
-        expect(parsedMessage.payload.min_version).toBe(100)
-        expect(parsedMessage.payload.max_version).toBe(300)
-        expect(parsedMessage.payload.spec_version_hash).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
-        expect(parsedMessage.payload.library_version_hash).toEqual([17, 18, 19, 20, 21, 22, 23, 24])
-      })
+    test('should parse and serialize PROTOCOL_VERSION message with arrays correctly using snake_case', () => {
+      const originalMessage = {
+        message_name: 'PROTOCOL_VERSION',
+        system_id: 1,
+        component_id: 1,
+        sequence: 50,
+        payload: {
+          version: 200,
+          min_version: 100,
+          max_version: 300,
+          spec_version_hash: [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08],
+          library_version_hash: [0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18],
+        },
+      }
 
-      test('should handle PROTOCOL_VERSION with partial arrays using snake_case', () => {
-        const originalMessage = {
-          message_name: 'PROTOCOL_VERSION',
-          system_id: 1,
-          component_id: 1,
-          sequence: 51,
-          payload: {
-            version: 150,
-            min_version: 50,
-            max_version: 200,
-            spec_version_hash: [0xaa, 0xbb, 0xcc],
-          },
-        }
+      const serializedBytes = serializer.serialize(originalMessage)
+      const parsedMessages = parser.parseBytes(serializedBytes)
 
-        const serializedBytes = serializer.serialize(originalMessage)
-        const parsedMessages = parser.parseBytes(serializedBytes)
+      expect(parsedMessages).toHaveLength(1)
+      const parsedMessage = parsedMessages[0]
 
-        expect(parsedMessages).toHaveLength(1)
-        const parsedMessage = parsedMessages[0]
+      expect(parsedMessage.message_name).toBe('PROTOCOL_VERSION')
+      expect(parsedMessage.message_id).toBe(300)
+      expect(parsedMessage.payload.version).toBe(200)
+      expect(parsedMessage.payload.min_version).toBe(100)
+      expect(parsedMessage.payload.max_version).toBe(300)
+      expect(parsedMessage.payload.spec_version_hash).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
+      expect(parsedMessage.payload.library_version_hash).toEqual([17, 18, 19, 20, 21, 22, 23, 24])
+    })
 
-        expect(parsedMessage.payload.version).toBe(150)
-        expect(parsedMessage.payload.min_version).toBe(50)
-        expect(parsedMessage.payload.max_version).toBe(200)
-        // Arrays should be padded with zeros for missing elements
-        expect(parsedMessage.payload.spec_version_hash).toEqual([0xaa, 0xbb, 0xcc, 0, 0, 0, 0, 0])
-        expect(parsedMessage.payload.library_version_hash).toEqual([0, 0, 0, 0, 0, 0, 0, 0])
-      })
+    test('should handle PROTOCOL_VERSION with partial arrays using snake_case', () => {
+      const originalMessage = {
+        message_name: 'PROTOCOL_VERSION',
+        system_id: 1,
+        component_id: 1,
+        sequence: 51,
+        payload: {
+          version: 150,
+          min_version: 50,
+          max_version: 200,
+          spec_version_hash: [0xaa, 0xbb, 0xcc],
+        },
+      }
+
+      const serializedBytes = serializer.serialize(originalMessage)
+      const parsedMessages = parser.parseBytes(serializedBytes)
+
+      expect(parsedMessages).toHaveLength(1)
+      const parsedMessage = parsedMessages[0]
+
+      expect(parsedMessage.payload.version).toBe(150)
+      expect(parsedMessage.payload.min_version).toBe(50)
+      expect(parsedMessage.payload.max_version).toBe(200)
+      // Arrays should be padded with zeros for missing elements
+      expect(parsedMessage.payload.spec_version_hash).toEqual([0xaa, 0xbb, 0xcc, 0, 0, 0, 0, 0])
+      expect(parsedMessage.payload.library_version_hash).toEqual([0, 0, 0, 0, 0, 0, 0, 0])
     })
   })
 

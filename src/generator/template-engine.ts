@@ -420,7 +420,12 @@ abstract class DialectParser {
     const view = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
     let offset = 0;
 
-    for (const field of fields) {
+    // MAVLink v2 wire format: fields are sorted by type size (largest first)
+    // Extension fields come after core fields and maintain their XML order
+    // See: https://mavlink.io/en/guide/serialization.html#field_reordering
+    const sortedFields = this.sortFieldsByWireOrder(fields);
+
+    for (const field of sortedFields) {
       if (offset >= payload.length) {
         result[field.name] = this.getDefaultValue(field);
       } else {
@@ -431,6 +436,47 @@ abstract class DialectParser {
     }
 
     return result;
+  }
+
+  // Sort fields by MAVLink v2 wire order: by type size descending, extensions last
+  // Uses stable sort to preserve original order for same-size fields
+  private sortFieldsByWireOrder(fields: FieldDefinition[]): FieldDefinition[] {
+    // Separate core fields and extension fields
+    const coreFields: Array<{ field: FieldDefinition; originalIndex: number }> = [];
+    const extensionFields: FieldDefinition[] = [];
+
+    fields.forEach((field, index) => {
+      if (field.extension) {
+        extensionFields.push(field);
+      } else {
+        coreFields.push({ field, originalIndex: index });
+      }
+    });
+
+    // Stable sort core fields by type size (descending)
+    // Arrays are sorted by element type size, not total array size
+    coreFields.sort((a, b) => {
+      const sizeA = this.getFieldTypeSize(a.field);
+      const sizeB = this.getFieldTypeSize(b.field);
+      if (sizeB !== sizeA) {
+        return sizeB - sizeA; // Descending order (largest first)
+      }
+      // Same size: maintain original XML order (stable sort)
+      return a.originalIndex - b.originalIndex;
+    });
+
+    // Extension fields maintain their XML order and come after core fields
+    return [...coreFields.map(c => c.field), ...extensionFields];
+  }
+
+  // Get the size of a single element of a field type (for wire order sorting)
+  private getFieldTypeSize(field: FieldDefinition): number {
+    let baseType = field.type;
+    // Strip array notation to get base type (arrays sort by element type, not total size)
+    if (baseType.includes('[') && baseType.includes(']')) {
+      baseType = baseType.substring(0, baseType.indexOf('['));
+    }
+    return this.getSingleFieldSize(baseType);
   }
 
   private getDefaultValue(field: FieldDefinition): FieldValue {
@@ -669,9 +715,14 @@ abstract class DialectParser {
   }
 
   private serializePayload(message: Record<string, unknown>, fields: FieldDefinition[]): Uint8Array {
+    // MAVLink v2 wire format: fields must be sorted by type size (largest first)
+    // Extension fields come after core fields and maintain their XML order
+    // See: https://mavlink.io/en/guide/serialization.html#field_reordering
+    const sortedFields = this.sortFieldsByWireOrder(fields);
+
     // Calculate total payload size
     let totalSize = 0;
-    for (const field of fields) {
+    for (const field of sortedFields) {
       totalSize += this.getFieldSize(field);
     }
 
@@ -679,7 +730,7 @@ abstract class DialectParser {
     const view = new DataView(buffer);
     let offset = 0;
 
-    for (const field of fields) {
+    for (const field of sortedFields) {
       const value = message[field.name];
       const bytesWritten = this.serializeField(view, offset, field, value);
       offset += bytesWritten;
@@ -688,20 +739,18 @@ abstract class DialectParser {
     // Implement MAVLink payload trimming: remove trailing zero bytes from extension fields only
     // This is required for proper handling of extension fields
     const fullPayload = new Uint8Array(buffer);
-    
+
     // Calculate minimum payload size (core fields only)
     let corePayloadSize = 0;
     let extensionStartOffset = 0;
     let hasExtensions = false;
-    
-    const messageName = message.message_name as string;
-    
-    for (const field of fields) {
+
+    for (const field of sortedFields) {
       const fieldSize = this.getFieldSize(field);
-      
+
       // Check if this is an extension field using proper XML-based detection
       const isExtensionField = field.extension === true;
-      
+
       if (isExtensionField) {
         if (!hasExtensions) {
           extensionStartOffset = corePayloadSize;

@@ -1,4 +1,5 @@
-import { MinimalParser } from '../../src/generated/dialects/minimal/decoder'
+import { MinimalParser } from '../../src/generated/dialects/minimal'
+import { CommonParser } from '../../src/generated/dialects/common/decoder'
 
 describe('Generated Decoder Tests', () => {
   let parser: MinimalParser
@@ -16,8 +17,8 @@ describe('Generated Decoder Tests', () => {
       expect(parser.supportsMessage(0)).toBe(true)
     })
 
-    test('should support PROTOCOL_VERSION message (ID 300)', () => {
-      expect(parser.supportsMessage(300)).toBe(true)
+    test('should not support PROTOCOL_VERSION message (ID 300) - only in common dialect', () => {
+      expect(parser.supportsMessage(300)).toBe(false)
     })
 
     test('should not support unknown message', () => {
@@ -27,8 +28,7 @@ describe('Generated Decoder Tests', () => {
     test('should return supported message IDs', () => {
       const ids = parser.getSupportedMessageIds()
       expect(ids).toContain(0) // HEARTBEAT
-      expect(ids).toContain(300) // PROTOCOL_VERSION
-      expect(ids.length).toBe(2)
+      expect(ids.length).toBe(1) // minimal dialect only has HEARTBEAT
     })
 
     test('should decode HEARTBEAT message correctly', () => {
@@ -76,7 +76,7 @@ describe('Generated Decoder Tests', () => {
       expect(result.payload.mavlink_version).toBe(3)
     })
 
-    test('should decode PROTOCOL_VERSION message correctly', () => {
+    test('should handle unknown message ID for PROTOCOL_VERSION (not in minimal dialect)', () => {
       const frame = {
         magic: 0xfd,
         length: 22,
@@ -85,7 +85,13 @@ describe('Generated Decoder Tests', () => {
         component_id: 1,
         message_id: 300,
         payload: new Uint8Array([
-          // Wire format: arrays first (largest fields), then uint16_t fields
+          // Wire format: uint16_t fields first (element size 2), then uint8_t arrays (element size 1)
+          0xc8,
+          0x00, // version (uint16_t) = 200
+          0x64,
+          0x00, // min_version (uint16_t) = 100
+          0x2c,
+          0x01, // max_version (uint16_t) = 300
           0x01,
           0x02,
           0x03,
@@ -102,12 +108,6 @@ describe('Generated Decoder Tests', () => {
           0x16,
           0x17,
           0x18, // library_version_hash[8]
-          0xc8,
-          0x00, // version (uint16_t) = 200
-          0x64,
-          0x00, // min_version (uint16_t) = 100
-          0x2c,
-          0x01, // max_version (uint16_t) = 300
         ]),
         checksum: 0x1234,
         crc_ok: true,
@@ -116,15 +116,10 @@ describe('Generated Decoder Tests', () => {
 
       const result = parser.decode(frame)
 
+      // MinimalParser doesn't know PROTOCOL_VERSION, so it returns unknown
       expect(result.message_id).toBe(300)
-      expect(result.message_name).toBe('PROTOCOL_VERSION')
+      expect(result.message_name).toBe('UNKNOWN_300')
       expect(result.protocol_version).toBe(2)
-
-      expect(result.payload.version).toBe(200) // 0xC8, 0x00 as little-endian uint16
-      expect(result.payload.min_version).toBe(100) // 0x64, 0x00 as little-endian uint16
-      expect(result.payload.max_version).toBe(300) // 0x2C, 0x01 as little-endian uint16
-      expect(result.payload.spec_version_hash).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
-      expect(result.payload.library_version_hash).toEqual([17, 18, 19, 20, 21, 22, 23, 24])
     })
 
     test('should handle unknown message ID', () => {
@@ -248,7 +243,13 @@ describe('Generated Decoder Tests', () => {
     })
   })
 
-  describe('Array handling', () => {
+  describe('Array handling with CommonParser', () => {
+    let commonParser: CommonParser
+
+    beforeEach(() => {
+      commonParser = new CommonParser()
+    })
+
     test('should decode arrays correctly in PROTOCOL_VERSION', () => {
       const frame = {
         magic: 0xfe,
@@ -258,7 +259,13 @@ describe('Generated Decoder Tests', () => {
         component_id: 1,
         message_id: 300,
         payload: new Uint8Array([
-          // Wire format: arrays first (largest fields), then uint16_t fields
+          // Wire format: uint16_t fields first (element size 2), then uint8_t arrays (element size 1)
+          0xc8,
+          0x00, // version (uint16_t) = 200
+          0x64,
+          0x00, // min_version (uint16_t) = 100
+          0x2c,
+          0x01, // max_version (uint16_t) = 300
           0xaa,
           0xbb,
           0xcc,
@@ -275,29 +282,23 @@ describe('Generated Decoder Tests', () => {
           0x88,
           0x99,
           0xaa, // library_version_hash[8]
-          0xc8,
-          0x00, // version (uint16_t)
-          0x64,
-          0x00, // min_version (uint16_t)
-          0x2c,
-          0x01, // max_version (uint16_t)
         ]),
         checksum: 0x1234,
         crc_ok: true,
         protocol_version: 1 as const,
       }
 
-      const result = parser.decode(frame)
+      const result = commonParser.decode(frame)
 
+      expect(result.payload.version).toBe(200) // 0xC8, 0x00 as little-endian uint16
+      expect(result.payload.min_version).toBe(100) // 0x64, 0x00 as little-endian uint16
+      expect(result.payload.max_version).toBe(300) // 0x2C, 0x01 as little-endian uint16
       expect(result.payload.spec_version_hash).toEqual([
         0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x11, 0x22,
       ])
       expect(result.payload.library_version_hash).toEqual([
         0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa,
       ])
-      expect(result.payload.version).toBe(200) // 0xC8, 0x00 as little-endian uint16
-      expect(result.payload.min_version).toBe(100) // 0x64, 0x00 as little-endian uint16
-      expect(result.payload.max_version).toBe(300) // 0x2C, 0x01 as little-endian uint16
     })
 
     test('should handle partial arrays', () => {
@@ -309,34 +310,33 @@ describe('Generated Decoder Tests', () => {
         component_id: 1,
         message_id: 300,
         payload: new Uint8Array([
-          // Wire format: partial spec_version_hash, no other fields
+          // Wire format: uint16_t fields first (6 bytes), then partial arrays
+          0xc8,
+          0x00, // version (uint16_t) = 200
+          0x64,
+          0x00, // min_version (uint16_t) = 100
+          0x2c,
+          0x01, // max_version (uint16_t) = 300
           0xaa,
           0xbb,
           0xcc,
-          0xdd,
-          0xee,
-          0xff,
-          0x11,
-          0x22, // spec_version_hash[8]
-          0x33,
-          0x44, // Only 2 bytes of library_version_hash
+          0xdd, // Only 4 bytes of spec_version_hash
         ]),
         checksum: 0x1234,
         crc_ok: true,
         protocol_version: 1 as const,
       }
 
-      const result = parser.decode(frame)
+      const result = commonParser.decode(frame)
 
-      // With only 10 bytes, we get full spec_version_hash and partial library_version_hash
-      expect(result.payload.spec_version_hash).toEqual([
-        0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x11, 0x22,
-      ])
-      expect(result.payload.library_version_hash).toEqual([0x33, 0x44])
-      // No data for uint16 fields
-      expect(result.payload.version).toBe(0)
-      expect(result.payload.min_version).toBe(0)
-      expect(result.payload.max_version).toBe(0)
+      // uint16_t fields should be read correctly
+      expect(result.payload.version).toBe(200)
+      expect(result.payload.min_version).toBe(100)
+      expect(result.payload.max_version).toBe(300)
+      // With only 4 bytes remaining for arrays, we get partial spec_version_hash
+      expect(result.payload.spec_version_hash).toEqual([0xaa, 0xbb, 0xcc, 0xdd])
+      // No data for library_version_hash
+      expect(result.payload.library_version_hash).toEqual([])
     })
   })
 
@@ -436,8 +436,10 @@ describe('Generated Decoder Tests', () => {
       expect(messages[0].message_name).toBe('HEARTBEAT')
     })
 
-    test('should handle MAVLink v2 messages', () => {
+    test('should handle MAVLink v2 messages with CommonParser', () => {
+      const commonParser = new CommonParser()
       // Protocol version message in MAVLink v2 format
+      // Wire format: uint16_t fields first (element size 2), then uint8_t arrays (element size 1)
       const v2Message = new Uint8Array([
         0xfd,
         0x16,
@@ -448,13 +450,13 @@ describe('Generated Decoder Tests', () => {
         0x01,
         0x2c,
         0x01,
-        0x00, // v2 header
+        0x00, // v2 header (magic, len, incompat, compat, seq, sysid, compid, msgid low, mid, high)
         0xc8,
         0x00,
         0x64,
         0x00,
         0x2c,
-        0x01, // version, min_version, max_version
+        0x01, // version, min_version, max_version (uint16_t)
         0x01,
         0x02,
         0x03,
@@ -462,7 +464,7 @@ describe('Generated Decoder Tests', () => {
         0x05,
         0x06,
         0x07,
-        0x08, // spec hash
+        0x08, // spec hash (uint8_t[8])
         0x11,
         0x12,
         0x13,
@@ -470,12 +472,12 @@ describe('Generated Decoder Tests', () => {
         0x15,
         0x16,
         0x17,
-        0x18, // library hash
+        0x18, // library hash (uint8_t[8])
         0x34,
         0x12, // checksum
       ])
 
-      const messages = parser.parseBytes(v2Message)
+      const messages = commonParser.parseBytes(v2Message)
 
       expect(messages).toHaveLength(1)
       expect(messages[0].message_name).toBe('PROTOCOL_VERSION')

@@ -1,14 +1,23 @@
 import { describe, it, expect } from '@jest/globals'
-import { CommonSerializer } from '../../src/generated/dialects/common'
-import { MinimalSerializer, MinimalParser } from '../../src/generated/dialects/minimal'
+import { CommonSerializer, CommonParser } from '../../src/generated/dialects/common'
 
 describe('Node-MAVLink Compatibility Tests', () => {
   const commonSerializer = new CommonSerializer()
-  const minimalSerializer = new MinimalSerializer()
-  const minimalParser = new MinimalParser()
+  const commonParser = new CommonParser()
 
   describe('Array Field Ordering', () => {
     it('should serialize PROTOCOL_VERSION with correct field order', () => {
+      // PROTOCOL_VERSION fields per MAVLink XML:
+      // - version: uint16_t (element size 2)
+      // - min_version: uint16_t (element size 2)
+      // - max_version: uint16_t (element size 2)
+      // - spec_version_hash: uint8_t[8] (element size 1)
+      // - library_version_hash: uint8_t[8] (element size 1)
+      //
+      // Wire order (sorted by element size, descending):
+      // 1. version, min_version, max_version at offset 0-5 (uint16_t, 2 bytes each)
+      // 2. spec_version_hash at offset 6-13 (uint8_t[8], element size 1)
+      // 3. library_version_hash at offset 14-21 (uint8_t[8], element size 1)
       const message = {
         message_name: 'PROTOCOL_VERSION',
         system_id: 1,
@@ -23,7 +32,7 @@ describe('Node-MAVLink Compatibility Tests', () => {
         },
       }
 
-      const frame = minimalSerializer.serialize(message)
+      const frame = commonSerializer.serialize(message)
 
       // Extract payload based on MAVLink version
       let payload: Buffer
@@ -35,41 +44,36 @@ describe('Node-MAVLink Compatibility Tests', () => {
         payload = Buffer.from(frame.slice(6, -2))
       }
 
-      // Verify field order: arrays first (8 bytes each), then uint16_t fields
       expect(payload.length).toBe(22)
 
-      // spec_version_hash at bytes 0-7
-      expect(Array.from(payload.slice(0, 8))).toEqual([
+      // uint16_t fields first (element size 2)
+      expect(payload.readUInt16LE(0)).toBe(200) // version
+      expect(payload.readUInt16LE(2)).toBe(100) // min_version
+      expect(payload.readUInt16LE(4)).toBe(300) // max_version
+
+      // uint8_t arrays after (element size 1)
+      expect(Array.from(payload.slice(6, 14))).toEqual([
         0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x11, 0x22,
-      ])
+      ]) // spec_version_hash
 
-      // library_version_hash at bytes 8-15
-      expect(Array.from(payload.slice(8, 16))).toEqual([
+      expect(Array.from(payload.slice(14, 22))).toEqual([
         0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa,
-      ])
-
-      // version at bytes 16-17 (little-endian)
-      expect(payload.readUInt16LE(16)).toBe(200)
-
-      // min_version at bytes 18-19
-      expect(payload.readUInt16LE(18)).toBe(100)
-
-      // max_version at bytes 20-21
-      expect(payload.readUInt16LE(20)).toBe(300)
+      ]) // library_version_hash
     })
 
     it('should parse PROTOCOL_VERSION with correct field order', () => {
       // Create a frame with known values in wire format order
+      // Wire order: uint16_t fields first, then uint8_t arrays
       const payload = Buffer.alloc(22)
 
-      // Arrays first (8 bytes each)
-      payload.set([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08], 0) // spec_version_hash
-      payload.set([0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18], 8) // library_version_hash
+      // uint16_t fields first (element size 2)
+      payload.writeUInt16LE(250, 0) // version
+      payload.writeUInt16LE(150, 2) // min_version
+      payload.writeUInt16LE(350, 4) // max_version
 
-      // Then uint16_t fields
-      payload.writeUInt16LE(250, 16) // version
-      payload.writeUInt16LE(150, 18) // min_version
-      payload.writeUInt16LE(350, 20) // max_version
+      // uint8_t arrays after (element size 1)
+      payload.set([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08], 6) // spec_version_hash
+      payload.set([0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18], 14) // library_version_hash
 
       const frame = {
         magic: 0xfe,
@@ -84,18 +88,18 @@ describe('Node-MAVLink Compatibility Tests', () => {
         protocol_version: 1 as const,
       }
 
-      const decoded = minimalParser.decode(frame)
+      const decoded = commonParser.decode(frame)
 
       expect(decoded.message_name).toBe('PROTOCOL_VERSION')
+      expect(decoded.payload.version).toBe(250)
+      expect(decoded.payload.min_version).toBe(150)
+      expect(decoded.payload.max_version).toBe(350)
       expect(decoded.payload.spec_version_hash).toEqual([
         0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
       ])
       expect(decoded.payload.library_version_hash).toEqual([
         0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
       ])
-      expect(decoded.payload.version).toBe(250)
-      expect(decoded.payload.min_version).toBe(150)
-      expect(decoded.payload.max_version).toBe(350)
     })
 
     it('should handle PARAM_VALUE with char array', () => {
@@ -116,27 +120,29 @@ describe('Node-MAVLink Compatibility Tests', () => {
       const frame = commonSerializer.serialize(message)
       const payload = Buffer.from(frame.slice(6, -2))
 
-      // Expected field order by size:
-      // 1. param_id: char[16] = 16 bytes (largest)
-      // 2. param_value: float = 4 bytes
-      // 3. param_count: uint16_t = 2 bytes
-      // 4. param_index: uint16_t = 2 bytes
-      // 5. param_type: uint8_t = 1 byte
+      // Expected field order by ELEMENT type size (per MAVLink spec):
+      // Arrays are sorted by element type, not total array size!
+      // See: https://mavlink.io/en/guide/serialization.html#field_reordering
+      // 1. param_value: float = 4 bytes (element size 4)
+      // 2. param_count: uint16_t = 2 bytes (element size 2)
+      // 3. param_index: uint16_t = 2 bytes (element size 2)
+      // 4. param_id: char[16] = 16 bytes (element size 1!)
+      // 5. param_type: uint8_t = 1 byte (element size 1)
 
       expect(payload.length).toBe(25)
 
-      // param_id at bytes 0-15 (null-padded string)
-      const paramId = Buffer.from(payload.slice(0, 16)).toString('utf8').replace(/\0+$/, '')
+      // param_value at bytes 0-3 (float)
+      expect(payload.readFloatLE(0)).toBeCloseTo(0.15)
+
+      // param_count at bytes 4-5 (uint16_t)
+      expect(payload.readUInt16LE(4)).toBe(300)
+
+      // param_index at bytes 6-7 (uint16_t)
+      expect(payload.readUInt16LE(6)).toBe(42)
+
+      // param_id at bytes 8-23 (null-padded string)
+      const paramId = Buffer.from(payload.slice(8, 24)).toString('utf8').replace(/\0+$/, '')
       expect(paramId).toBe('RATE_PIT_P')
-
-      // param_value at bytes 16-19
-      expect(payload.readFloatLE(16)).toBeCloseTo(0.15)
-
-      // param_count at bytes 20-21
-      expect(payload.readUInt16LE(20)).toBe(300)
-
-      // param_index at bytes 22-23
-      expect(payload.readUInt16LE(22)).toBe(42)
 
       // param_type at byte 24
       expect(payload[24]).toBe(9)
@@ -144,27 +150,29 @@ describe('Node-MAVLink Compatibility Tests', () => {
   })
 
   describe('Mixed Array Sizes', () => {
-    it('should correctly order fields with different array sizes', () => {
+    it('should correctly order fields by ELEMENT type size (not total array size)', () => {
       // Test with a hypothetical message that has multiple arrays
+      // Per MAVLink spec: arrays are sorted by element type, not total size!
+      // See: https://mavlink.io/en/guide/serialization.html#field_reordering
       const fields = [
-        { name: 'small_array', type: 'uint8_t[5]', size: 5 },
-        { name: 'large_array', type: 'uint8_t[20]', size: 20 },
-        { name: 'medium_array', type: 'uint16_t[4]', size: 8 },
-        { name: 'single_int', type: 'uint32_t', size: 4 },
-        { name: 'single_byte', type: 'uint8_t', size: 1 },
+        { name: 'small_array', type: 'uint8_t[5]', elementSize: 1 },
+        { name: 'large_array', type: 'uint8_t[20]', elementSize: 1 },
+        { name: 'medium_array', type: 'uint16_t[4]', elementSize: 2 },
+        { name: 'single_int', type: 'uint32_t', elementSize: 4 },
+        { name: 'single_byte', type: 'uint8_t', elementSize: 1 },
       ]
 
-      // Expected order by size (descending)
+      // Expected order by ELEMENT type size (descending), then stable sort for same size
       const expectedOrder = [
-        'large_array', // 20 bytes
-        'medium_array', // 8 bytes
-        'small_array', // 5 bytes
-        'single_int', // 4 bytes
-        'single_byte', // 1 byte
+        'single_int', // uint32_t element size 4
+        'medium_array', // uint16_t element size 2
+        'small_array', // uint8_t element size 1 (comes before large_array due to stable sort)
+        'large_array', // uint8_t element size 1
+        'single_byte', // uint8_t element size 1
       ]
 
-      // Sort by size descending
-      const sorted = [...fields].sort((a, b) => b.size - a.size)
+      // Sort by element size descending (stable sort preserves original order for same size)
+      const sorted = [...fields].sort((a, b) => b.elementSize - a.elementSize)
       const actualOrder = sorted.map((f) => f.name)
 
       expect(actualOrder).toEqual(expectedOrder)
