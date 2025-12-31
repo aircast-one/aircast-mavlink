@@ -179,8 +179,6 @@ export { Message{{ name }}, is{{ name }} } from './messages/{{ kebabCase origina
 import {
   MessageDefinition,
   DialectParser,
-  getFieldDefaultValue,
-  sortFieldsByWireOrder,
 } from '../../../core';
 
 // Message registry for lazy loading
@@ -201,6 +199,7 @@ export class {{capitalize dialectName}}Parser extends DialectParser {
     this.setCrcExtraTable(CRC_EXTRA_TABLE);
     for (const [id, def] of MESSAGE_REGISTRY) {
       this.messageDefinitions.set(id, def);
+      this.messageDefinitionsByName.set(def.name, def);
     }
   }
 
@@ -209,7 +208,7 @@ export class {{capitalize dialectName}}Parser extends DialectParser {
   }
 }
 
-// Dialect-specific serializer
+// Dialect-specific serializer (delegates to parser)
 export class {{capitalize dialectName}}Serializer {
   private parser: {{capitalize dialectName}}Parser;
 
@@ -222,41 +221,15 @@ export class {{capitalize dialectName}}Serializer {
   }
 
   completeMessage(message: Record<string, unknown> & { message_name: string }): Record<string, unknown> {
-    const definitions = Array.from((this.parser as any).messageDefinitions.values()) as MessageDefinition[];
-    const messageDef = definitions.find(def => def.name === message.message_name);
-
-    if (!messageDef) {
-      throw new Error(\`Unknown message type: \${message.message_name}\`);
-    }
-
-    if (!message.payload || typeof message.payload !== 'object') {
-      throw new Error(\`Message must have a 'payload' object containing the message fields.\`);
-    }
-
-    const messageFields = message.payload as Record<string, unknown>;
-    const sortedFields = sortFieldsByWireOrder(messageDef.fields);
-
-    const completedFields: Record<string, unknown> = { ...messageFields };
-    for (const field of sortedFields) {
-      if (completedFields[field.name] === undefined) {
-        completedFields[field.name] = getFieldDefaultValue(field);
-      }
-    }
-
-    return {
-      ...message,
-      payload: completedFields
-    };
+    return this.parser.completeMessage(message);
   }
 
   getSupportedMessages(): string[] {
-    const definitions = Array.from((this.parser as any).messageDefinitions.values()) as MessageDefinition[];
-    return definitions.map(def => def.name);
+    return this.parser.getSupportedMessageNames();
   }
 
   supportsMessage(messageName: string): boolean {
-    const definitions = Array.from((this.parser as any).messageDefinitions.values()) as MessageDefinition[];
-    return definitions.some(def => def.name === messageName);
+    return this.parser.supportsMessageName(messageName);
   }
 }
 `)

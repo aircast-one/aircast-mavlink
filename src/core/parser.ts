@@ -11,8 +11,10 @@ import {
   encodePayload,
   getFieldDefaultValue,
   sortFieldsByWireOrder,
-  getFieldSize,
 } from './codec';
+
+// Ring buffer for efficient streaming - avoids repeated array allocations
+const DEFAULT_BUFFER_SIZE = 4096;
 
 /**
  * Abstract base class for dialect-specific parsers
@@ -20,12 +22,26 @@ import {
  */
 export abstract class DialectParser {
   protected messageDefinitions: Map<number, MessageDefinition> = new Map();
+  protected messageDefinitionsByName: Map<string, MessageDefinition> = new Map();
   protected crcExtraTable: Record<number, number> = {};
   protected dialectName: string;
-  private buffer: Uint8Array = new Uint8Array(0);
+
+  // Ring buffer for streaming
+  private buffer: Uint8Array;
+  private bufferStart = 0;
+  private bufferEnd = 0;
 
   constructor(dialectName: string) {
     this.dialectName = dialectName;
+    this.buffer = new Uint8Array(DEFAULT_BUFFER_SIZE);
+  }
+
+  /**
+   * Register a message definition (updates both ID and name indexes)
+   */
+  protected registerMessageDefinition(def: MessageDefinition): void {
+    this.messageDefinitions.set(def.id, def);
+    this.messageDefinitionsByName.set(def.name, def);
   }
 
   /**
@@ -50,16 +66,15 @@ export abstract class DialectParser {
       return results;
     }
 
-    // Append new data to buffer
-    const newBuffer = new Uint8Array(this.buffer.length + data.length);
-    newBuffer.set(this.buffer);
-    newBuffer.set(data, this.buffer.length);
-    this.buffer = newBuffer;
+    // Append new data to ring buffer
+    this.appendToBuffer(data);
 
+    // Get current buffer contents
+    let bufferData = this.getBufferContents();
     let offset = 0;
 
-    while (offset < this.buffer.length) {
-      const frameResult = parseFrame(this.buffer.slice(offset), this.crcExtraTable);
+    while (offset < bufferData.length) {
+      const frameResult = parseFrame(bufferData.subarray(offset), this.crcExtraTable);
 
       if (frameResult.frame) {
         const message = this.decode(frameResult.frame);
@@ -72,15 +87,62 @@ export abstract class DialectParser {
       }
     }
 
-    this.buffer = this.buffer.slice(offset);
+    // Consume processed bytes
+    this.consumeBuffer(offset);
     return results;
+  }
+
+  /**
+   * Append data to ring buffer, growing if necessary
+   */
+  private appendToBuffer(data: Uint8Array): void {
+    const currentLength = this.bufferEnd - this.bufferStart;
+    const requiredSize = currentLength + data.length;
+
+    // Grow buffer if needed
+    if (requiredSize > this.buffer.length) {
+      const newSize = Math.max(this.buffer.length * 2, requiredSize);
+      const newBuffer = new Uint8Array(newSize);
+      newBuffer.set(this.getBufferContents());
+      this.buffer = newBuffer;
+      this.bufferStart = 0;
+      this.bufferEnd = currentLength;
+    } else if (this.bufferEnd + data.length > this.buffer.length) {
+      // Compact: move data to start of buffer
+      const contents = this.getBufferContents();
+      this.buffer.set(contents);
+      this.bufferStart = 0;
+      this.bufferEnd = currentLength;
+    }
+
+    this.buffer.set(data, this.bufferEnd);
+    this.bufferEnd += data.length;
+  }
+
+  /**
+   * Get current buffer contents as a view
+   */
+  private getBufferContents(): Uint8Array {
+    return this.buffer.subarray(this.bufferStart, this.bufferEnd);
+  }
+
+  /**
+   * Consume bytes from the start of the buffer
+   */
+  private consumeBuffer(bytes: number): void {
+    this.bufferStart += bytes;
+    if (this.bufferStart === this.bufferEnd) {
+      this.bufferStart = 0;
+      this.bufferEnd = 0;
+    }
   }
 
   /**
    * Clear the internal buffer
    */
   resetBuffer(): void {
-    this.buffer = new Uint8Array(0);
+    this.bufferStart = 0;
+    this.bufferEnd = 0;
   }
 
   /**
@@ -131,9 +193,7 @@ export abstract class DialectParser {
    * Serialize a message to MAVLink bytes
    */
   serializeMessage(message: Record<string, unknown> & { message_name: string }): Uint8Array {
-    const messageDef = Array.from(this.messageDefinitions.values()).find(
-      def => def.name === message.message_name
-    );
+    const messageDef = this.messageDefinitionsByName.get(message.message_name);
 
     if (!messageDef) {
       throw new Error(`Unknown message type: ${message.message_name}`);
@@ -228,41 +288,40 @@ export abstract class DialectParser {
   supportsMessage(messageId: number): boolean {
     return this.messageDefinitions.has(messageId);
   }
-}
-
-/**
- * Dialect-specific serializer wrapper
- */
-export class DialectSerializer<T extends DialectParser> {
-  private parser: T;
-
-  constructor(parser: T) {
-    this.parser = parser;
-  }
 
   /**
-   * Serialize a message to MAVLink bytes
+   * Check if a message name is supported
    */
-  serialize(message: Record<string, unknown> & { message_name: string }): Uint8Array {
-    return this.parser.serializeMessage(message);
+  supportsMessageName(messageName: string): boolean {
+    return this.messageDefinitionsByName.has(messageName);
   }
 
   /**
-   * Complete a message with all defined fields
+   * Get message definition by name (O(1) lookup)
+   */
+  getMessageDefinitionByName(name: string): MessageDefinition | undefined {
+    return this.messageDefinitionsByName.get(name);
+  }
+
+  /**
+   * Get all supported message names
+   */
+  getSupportedMessageNames(): string[] {
+    return Array.from(this.messageDefinitionsByName.keys());
+  }
+
+  /**
+   * Complete a message with default values for all undefined fields
    */
   completeMessage(message: Record<string, unknown> & { message_name: string }): Record<string, unknown> {
-    const messageDef = Array.from((this.parser as any).messageDefinitions.values()).find(
-      (def: any) => def.name === message.message_name
-    ) as MessageDefinition | undefined;
+    const messageDef = this.messageDefinitionsByName.get(message.message_name);
 
     if (!messageDef) {
       throw new Error(`Unknown message type: ${message.message_name}`);
     }
 
     if (!message.payload || typeof message.payload !== 'object') {
-      throw new Error(
-        `Message must have a 'payload' object containing the message fields.`
-      );
+      throw new Error(`Message must have a 'payload' object containing the message fields.`);
     }
 
     const messageFields = message.payload as Record<string, unknown>;
@@ -279,23 +338,5 @@ export class DialectSerializer<T extends DialectParser> {
       ...message,
       payload: completedFields,
     };
-  }
-
-  /**
-   * Get supported message names
-   */
-  getSupportedMessages(): string[] {
-    return Array.from((this.parser as any).messageDefinitions.values()).map(
-      (def: any) => def.name
-    );
-  }
-
-  /**
-   * Check if a message name is supported
-   */
-  supportsMessage(messageName: string): boolean {
-    return Array.from((this.parser as any).messageDefinitions.values()).some(
-      (def: any) => def.name === messageName
-    );
   }
 }
