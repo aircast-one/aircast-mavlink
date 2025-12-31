@@ -1,0 +1,21 @@
+pre-commit:
+  parallel: true
+  commands:
+    eslint:
+      glob: '*.{ts,tsx,js,jsx}'
+      run: npx eslint --fix {staged_files} && git add {staged_files}
+      skip:
+        - merge
+        - rebase
+    prettier:
+      glob: '*.{ts,tsx,js,jsx,json,md,yml,yaml}'
+      run: npx prettier --write {staged_files} && git add {staged_files}
+      skip:
+        - merge
+        - rebase
+    typecheck:
+      glob: '*.{ts,tsx}'
+      run: npx tsc --noEmit
+      skip:
+        - merge
+        - rebase
