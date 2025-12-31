@@ -15,40 +15,92 @@
     "./iife": "./dist/mavlink.iife.js",
     "./dialects/common": {
       "types": "./dist/dialects/common/index.d.ts",
-      "import": "./dist/dialects/common/index.js",
-      "require": "./dist/dialects/common/index.js"
+      "import": "./dist/dialects/common/index.js"
+    },
+    "./dialects/common/parser": {
+      "types": "./dist/dialects/common/parser.d.ts",
+      "import": "./dist/dialects/common/parser.js"
+    },
+    "./dialects/common/messages/*": {
+      "types": "./dist/dialects/common/messages/*.d.ts",
+      "import": "./dist/dialects/common/messages/*.js"
     },
     "./dialects/minimal": {
       "types": "./dist/dialects/minimal/index.d.ts",
-      "import": "./dist/dialects/minimal/index.js",
-      "require": "./dist/dialects/minimal/index.js"
+      "import": "./dist/dialects/minimal/index.js"
+    },
+    "./dialects/minimal/parser": {
+      "types": "./dist/dialects/minimal/parser.d.ts",
+      "import": "./dist/dialects/minimal/parser.js"
+    },
+    "./dialects/minimal/messages/*": {
+      "types": "./dist/dialects/minimal/messages/*.d.ts",
+      "import": "./dist/dialects/minimal/messages/*.js"
     },
     "./dialects/ardupilotmega": {
       "types": "./dist/dialects/ardupilotmega/index.d.ts",
-      "import": "./dist/dialects/ardupilotmega/index.js",
-      "require": "./dist/dialects/ardupilotmega/index.js"
+      "import": "./dist/dialects/ardupilotmega/index.js"
+    },
+    "./dialects/ardupilotmega/parser": {
+      "types": "./dist/dialects/ardupilotmega/parser.d.ts",
+      "import": "./dist/dialects/ardupilotmega/parser.js"
+    },
+    "./dialects/ardupilotmega/messages/*": {
+      "types": "./dist/dialects/ardupilotmega/messages/*.d.ts",
+      "import": "./dist/dialects/ardupilotmega/messages/*.js"
     },
     "./dialects/standard": {
       "types": "./dist/dialects/standard/index.d.ts",
-      "import": "./dist/dialects/standard/index.js",
-      "require": "./dist/dialects/standard/index.js"
+      "import": "./dist/dialects/standard/index.js"
+    },
+    "./dialects/standard/parser": {
+      "types": "./dist/dialects/standard/parser.d.ts",
+      "import": "./dist/dialects/standard/parser.js"
+    },
+    "./dialects/standard/messages/*": {
+      "types": "./dist/dialects/standard/messages/*.d.ts",
+      "import": "./dist/dialects/standard/messages/*.js"
     },
     "./dialects/test": {
       "types": "./dist/dialects/test/index.d.ts",
-      "import": "./dist/dialects/test/index.js",
-      "require": "./dist/dialects/test/index.js"
+      "import": "./dist/dialects/test/index.js"
+    },
+    "./dialects/test/parser": {
+      "types": "./dist/dialects/test/parser.d.ts",
+      "import": "./dist/dialects/test/parser.js"
+    },
+    "./dialects/test/messages/*": {
+      "types": "./dist/dialects/test/messages/*.d.ts",
+      "import": "./dist/dialects/test/messages/*.js"
     },
     "./dialects/paparazzi": {
       "types": "./dist/dialects/paparazzi/index.d.ts",
-      "import": "./dist/dialects/paparazzi/index.js",
-      "require": "./dist/dialects/paparazzi/index.js"
+      "import": "./dist/dialects/paparazzi/index.js"
+    },
+    "./dialects/paparazzi/parser": {
+      "types": "./dist/dialects/paparazzi/parser.d.ts",
+      "import": "./dist/dialects/paparazzi/parser.js"
+    },
+    "./dialects/paparazzi/messages/*": {
+      "types": "./dist/dialects/paparazzi/messages/*.d.ts",
+      "import": "./dist/dialects/paparazzi/messages/*.js"
     },
     "./dialects/python_array_test": {
       "types": "./dist/dialects/python_array_test/index.d.ts",
-      "import": "./dist/dialects/python_array_test/index.js",
-      "require": "./dist/dialects/python_array_test/index.js"
+      "import": "./dist/dialects/python_array_test/index.js"
+    },
+    "./dialects/python_array_test/parser": {
+      "types": "./dist/dialects/python_array_test/parser.d.ts",
+      "import": "./dist/dialects/python_array_test/parser.js"
+    },
+    "./dialects/python_array_test/messages/*": {
+      "types": "./dist/dialects/python_array_test/messages/*.d.ts",
+      "import": "./dist/dialects/python_array_test/messages/*.js"
     }
   },
+  "sideEffects": [
+    "./dist/dialects/*/messages/*.js"
+  ],
   "bin": {
     "aircast-mavlink": "dist/cli.js"
   },

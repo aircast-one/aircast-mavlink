@@ -59,7 +59,8 @@ describe('MAVLinkGenerator', () => {
 
       expect(fs.readFile).toHaveBeenCalledWith('test.xml', 'utf-8')
       expect(fs.mkdir).toHaveBeenCalledWith('./output', { recursive: true })
-      expect(fs.writeFile).toHaveBeenCalledTimes(5) // types, enums, messages, index + dist decoder
+      // types, enums, parser, index + 1 message file
+      expect(fs.writeFile).toHaveBeenCalledTimes(5)
     })
 
     it('should generate single file when specified', async () => {
@@ -67,7 +68,7 @@ describe('MAVLinkGenerator', () => {
 
       await generator.generateFromFile('test.xml', './output', singleFileOptions)
 
-      expect(fs.writeFile).toHaveBeenCalledTimes(2) // index file + dist decoder
+      expect(fs.writeFile).toHaveBeenCalledTimes(1) // index file only
       expect(fs.writeFile).toHaveBeenCalledWith(
         expect.stringContaining('index.ts'),
         expect.any(String)
@@ -79,7 +80,8 @@ describe('MAVLinkGenerator', () => {
 
       await generator.generateFromFile('test.xml', './output', noEnumsOptions)
 
-      expect(fs.writeFile).toHaveBeenCalledTimes(4) // types, messages, index + dist decoder (no enums)
+      // types, parser, index + 1 message file (no enums)
+      expect(fs.writeFile).toHaveBeenCalledTimes(4)
     })
   })
 

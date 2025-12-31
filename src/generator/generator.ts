@@ -60,17 +60,40 @@ export class MAVLinkGenerator {
         await fs.writeFile(join(outputPath, 'enums.ts'), enumsContent)
       }
 
-      const messagesContent = this.templateEngine.generateMessages(tsDialect, options.includeEnums)
-      await fs.writeFile(join(outputPath, 'messages.ts'), messagesContent)
+      // Generate parser with message registry
+      const parserContent = this.templateEngine.generateParser(tsDialect)
+      await fs.writeFile(join(outputPath, 'parser.ts'), parserContent)
+
+      // Generate messages/ directory with individual message modules
+      const messagesDir = join(outputPath, 'messages')
+      await fs.mkdir(messagesDir, { recursive: true })
+
+      for (const message of tsDialect.messages) {
+        const messageContent = this.templateEngine.generateMessageModule({
+          dialectName: options.dialectName,
+          originalName: message.originalName,
+          name: message.name,
+          constantName: message.originalName.toUpperCase(),
+          id: message.id ?? 0,
+          crcExtra: message.crcExtra,
+          fields: message.fields.map((f) => ({
+            name: f.name,
+            type: f.type,
+            originalType: f.originalType ?? f.type,
+            arrayLength: f.arrayLength,
+            extension: f.extension,
+            optional: f.optional,
+            description: f.description,
+          })),
+          description: message.description,
+        })
+        const fileName = message.originalName.toLowerCase().replace(/_/g, '-') + '.ts'
+        await fs.writeFile(join(messagesDir, fileName), messageContent)
+      }
 
       const indexContent = this.templateEngine.generateIndex(tsDialect, options.includeEnums)
       await fs.writeFile(join(outputPath, 'index.ts'), indexContent)
     }
-
-    // Generate combined decoder and parser in the same dialect directory
-    const decoderContent = this.templateEngine.generateDecoder(tsDialect)
-    const decoderPath = join(outputPath, 'decoder.ts')
-    await fs.writeFile(decoderPath, decoderContent)
 
     console.log(`Generated TypeScript types for ${options.dialectName} in ${outputPath}`)
   }

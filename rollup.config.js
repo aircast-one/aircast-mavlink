@@ -5,15 +5,22 @@ import dts from 'rollup-plugin-dts';
 import { glob } from 'glob';
 
 
-// Get all dialect entry points
-const dialectEntries = glob.sync('src/generated/dialects/*/index.ts').reduce((acc, file) => {
-  const dialectName = file.split('/')[3]; // Extract dialect name from path
-  acc[`dialects/${dialectName}/index`] = file;
+// Get all dialect entry points (index.ts, parser.ts, and all message modules)
+const dialectFiles = glob.sync('src/generated/dialects/*/{index,parser}.ts');
+const messageFiles = glob.sync('src/generated/dialects/*/messages/*.ts');
+const allFiles = [...dialectFiles, ...messageFiles];
+
+const dialectEntries = allFiles.reduce((acc, file) => {
+  // Convert src/generated/dialects/common/index.ts -> dialects/common/index
+  // Convert src/generated/dialects/common/parser.ts -> dialects/common/parser
+  // Convert src/generated/dialects/common/messages/heartbeat.ts -> dialects/common/messages/heartbeat
+  const relativePath = file.replace('src/generated/', '').replace('.ts', '');
+  acc[relativePath] = file;
   return acc;
 }, {});
 
 export default [
-  // Individual dialect bundles
+  // Tree-shakeable dialect modules
   {
     input: dialectEntries,
     output: {
@@ -21,7 +28,8 @@ export default [
       format: 'es',
       sourcemap: true,
       entryFileNames: '[name].js',
-      banner: '// @aircast-4g/mavlink - Dialect bundle\n// Generated from TypeScript sources'
+      preserveModules: true,
+      preserveModulesRoot: 'src/generated'
     },
     plugins: [
       resolve(),
@@ -45,13 +53,15 @@ export default [
     ]
   },
 
-  // Individual dialect types
+  // Type declarations
   {
     input: dialectEntries,
     output: {
       dir: 'dist',
       format: 'es',
-      entryFileNames: '[name].d.ts'
+      entryFileNames: '[name].d.ts',
+      preserveModules: true,
+      preserveModulesRoot: 'src/generated'
     },
     plugins: [dts()]
   }

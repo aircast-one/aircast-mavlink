@@ -516,8 +516,7 @@ describe('TemplateEngine Enhanced Tests', () => {
 
       expect(result).toContain("export * from './types'")
       expect(result).toContain("export * from './enums'")
-      expect(result).toContain("export * from './messages'")
-      expect(result).toContain("export * from './decoder'")
+      expect(result).toContain("export * from './parser'")
     })
 
     test('should generate index with includeEnums = false', () => {
@@ -530,8 +529,7 @@ describe('TemplateEngine Enhanced Tests', () => {
       const result = engine.generateIndex(dialect, false)
 
       expect(result).toContain("export * from './types'")
-      expect(result).toContain("export * from './messages'")
-      expect(result).toContain("export * from './decoder'")
+      expect(result).toContain("export * from './parser'")
       // Should not include enums export
       expect(result).not.toContain("export * from './enums'")
     })

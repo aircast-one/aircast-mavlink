@@ -135,11 +135,11 @@ export function is{{ name }}(msg: ParsedMAVLinkMessage): msg is ParsedMAVLinkMes
 `)
     )
 
-    // Index template
+    // Index template - exports parser and imports all messages
     this.templates.set(
       'index',
       Handlebars.compile(`// Auto-generated TypeScript index file
-// Exports all dialect types
+// Exports parser and all message types
 
 export * from './types';
 {{#if includeEnums}}
@@ -147,8 +147,17 @@ export * from './types';
 export * from './enums';
 {{/if}}
 {{/if}}
-export * from './messages';
-export * from './decoder';
+export * from './parser';
+
+// Import all messages to register them
+{{#each messages}}
+import './messages/{{ kebabCase originalName }}';
+{{/each}}
+
+// Re-export message types and guards
+{{#each messages}}
+export { Message{{ name }}, is{{ name }} } from './messages/{{ kebabCase originalName }}';
+{{/each}}
 `)
     )
 
@@ -161,69 +170,42 @@ export * from './decoder';
 `)
     )
 
-    // Combined decoder and parser template - imports from core modules
+    // Parser template with message registry for tree-shaking
     this.templates.set(
-      'decoder',
-      Handlebars.compile(`// Auto-generated decoder and parser for {{{ dialectName }}} dialect
+      'parser',
+      Handlebars.compile(`// Auto-generated parser for {{{ dialectName }}} dialect
 // Generated from MAVLink XML definitions
 
 import {
-  ParsedMAVLinkMessage,
-  MAVLinkFrame,
   MessageDefinition,
-  FieldDefinition,
   DialectParser,
   getFieldDefaultValue,
   sortFieldsByWireOrder,
-  getFieldSize,
 } from '../../../core';
 
-// CRC_EXTRA values for each message type
-{{{generateCrcExtra messages}}}
+// Message registry for lazy loading
+const MESSAGE_REGISTRY = new Map<number, MessageDefinition>();
+const CRC_EXTRA_TABLE: Record<number, number> = {};
 
-{{#if messages}}
-const MESSAGE_DEFINITIONS: MessageDefinition[] = [
-{{#each messages}}
-  {
-    id: {{ id }},
-    name: '{{{ originalName }}}',
-    fields: [
-{{#each fields}}
-      {
-        name: '{{{ name }}}',
-        type: '{{{ originalType }}}',
-{{#if arrayLength}}
-        arrayLength: {{ arrayLength }},
-{{/if}}
-{{#if extension}}
-        extension: {{ extension }},
-{{/if}}
-      },
-{{/each}}
-    ]
-  },
-{{/each}}
-];
-{{else}}
-const MESSAGE_DEFINITIONS: MessageDefinition[] = [];
-{{/if}}
+/**
+ * Register a message definition. Called automatically when message modules are imported.
+ */
+export function registerMessage(id: number, definition: MessageDefinition, crcExtra: number): void {
+  MESSAGE_REGISTRY.set(id, definition);
+  CRC_EXTRA_TABLE[id] = crcExtra;
+}
 
 export class {{capitalize dialectName}}Parser extends DialectParser {
   constructor() {
     super('{{{ dialectName }}}');
-    this.setCrcExtraTable(CRC_EXTRA);
-    this.loadDefinitionsSync();
+    this.setCrcExtraTable(CRC_EXTRA_TABLE);
+    for (const [id, def] of MESSAGE_REGISTRY) {
+      this.messageDefinitions.set(id, def);
+    }
   }
 
   async loadDefinitions(): Promise<void> {
-    this.loadDefinitionsSync();
-  }
-
-  private loadDefinitionsSync(): void {
-    this.messageDefinitions.clear();
-    for (const def of MESSAGE_DEFINITIONS) {
-      this.messageDefinitions.set(def.id, def);
-    }
+    // Definitions are registered on import
   }
 }
 
@@ -279,6 +261,46 @@ export class {{capitalize dialectName}}Serializer {
 }
 `)
     )
+
+    // Individual message module template
+    this.templates.set(
+      'message-module',
+      Handlebars.compile(`// Auto-generated message module for {{ originalName }}
+// Dialect: {{ dialectName }}
+
+import { registerMessage } from '../parser';
+import type { MessageDefinition } from '../../../../core';
+
+export const {{ constantName }}_ID = {{ id }};
+export const {{ constantName }}_CRC_EXTRA = {{ crcExtra }};
+
+export const {{ name }}Definition: MessageDefinition = {
+  id: {{ id }},
+  name: '{{ originalName }}',
+  fields: [
+{{#each fields}}
+    { name: '{{ name }}', type: '{{ originalType }}'{{#if arrayLength}}, arrayLength: {{ arrayLength }}{{/if}}{{#if extension}}, extension: true{{/if}} },
+{{/each}}
+  ]
+};
+
+{{#each description}}
+// {{ this }}
+{{/each}}
+export interface Message{{ name }} {
+{{#each fields}}
+  {{ name }}{{#if optional}}?{{/if}}: {{ basicType type }};
+{{/each}}
+}
+
+export function is{{ name }}(msg: { message_name: string }): boolean {
+  return msg.message_name === '{{ originalName }}';
+}
+
+// Auto-register on import
+registerMessage({{ constantName }}_ID, {{ name }}Definition, {{ constantName }}_CRC_EXTRA);
+`)
+    )
   }
 
   private registerHelpers(): void {
@@ -300,6 +322,25 @@ export class {{capitalize dialectName}}Serializer {
 
     Handlebars.registerHelper('capitalize', (str: string) => {
       return str.charAt(0).toUpperCase() + str.slice(1)
+    })
+
+    Handlebars.registerHelper('kebabCase', (str: string) => {
+      return str.toLowerCase().replace(/_/g, '-')
+    })
+
+    // Convert any type to basic TypeScript type (no enum references)
+    Handlebars.registerHelper('basicType', (type: string) => {
+      if (type.endsWith('[]')) {
+        const baseType = type.slice(0, -2)
+        // If it's a string array, return string[]
+        if (baseType === 'string') return 'string[]'
+        // Otherwise assume number array (for any enum or numeric type)
+        return 'number[]'
+      }
+      if (type === 'string') return 'string'
+      if (type === 'bigint') return 'bigint'
+      // Default to number for all numeric and enum types
+      return 'number'
     })
 
     Handlebars.registerHelper(
@@ -393,5 +434,38 @@ export class {{capitalize dialectName}}Serializer {
       throw new Error('Decoder template not found')
     }
     return template(dialect)
+  }
+
+  generateParser(dialect: TypeScriptDialect): string {
+    const template = this.templates.get('parser')
+    if (!template) {
+      throw new Error('Parser template not found')
+    }
+    return template(dialect)
+  }
+
+  generateMessageModule(context: {
+    dialectName: string
+    originalName: string
+    name: string
+    constantName: string
+    id: number
+    crcExtra: number
+    fields: Array<{
+      name: string
+      type: string
+      originalType: string
+      arrayLength?: number
+      extension?: boolean
+      optional?: boolean
+      description?: string[]
+    }>
+    description?: string[]
+  }): string {
+    const template = this.templates.get('message-module')
+    if (!template) {
+      throw new Error('Message module template not found')
+    }
+    return template(context)
   }
 }
