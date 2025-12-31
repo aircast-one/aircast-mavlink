@@ -1,29 +1,34 @@
 // Base MAVLink dialect parser
-import { ParsedMAVLinkMessage, MAVLinkFrame, MessageDefinition, FieldDefinition } from './types'
+import {
+  ParsedMAVLinkMessage,
+  MAVLinkFrame,
+  MessageDefinition,
+  FieldDefinition,
+  IMessageParser,
+  IMessageSerializer,
+  IMessageRegistry,
+} from './types'
 import { parseFrame, createFrame } from './frame'
 import { decodePayload, encodePayload, getFieldDefaultValue, sortFieldsByWireOrder } from './codec'
-
-// Ring buffer for efficient streaming - avoids repeated array allocations
-const DEFAULT_BUFFER_SIZE = 4096
+import { StreamBuffer } from './stream-buffer'
 
 /**
  * Abstract base class for dialect-specific parsers
- * Handles MAVLink frame parsing, message decoding, and serialization
+ * Implements parsing, serialization, and registry interfaces
  */
-export abstract class DialectParser {
+export abstract class DialectParser
+  implements IMessageParser, IMessageSerializer, IMessageRegistry
+{
   protected messageDefinitions: Map<number, MessageDefinition> = new Map()
   protected messageDefinitionsByName: Map<string, MessageDefinition> = new Map()
   protected crcExtraTable: Record<number, number> = {}
   protected dialectName: string
 
-  // Ring buffer for streaming
-  private buffer: Uint8Array
-  private bufferStart = 0
-  private bufferEnd = 0
+  private streamBuffer: StreamBuffer
 
   constructor(dialectName: string) {
     this.dialectName = dialectName
-    this.buffer = new Uint8Array(DEFAULT_BUFFER_SIZE)
+    this.streamBuffer = new StreamBuffer()
   }
 
   /**
@@ -56,11 +61,9 @@ export abstract class DialectParser {
       return results
     }
 
-    // Append new data to ring buffer
-    this.appendToBuffer(data)
+    this.streamBuffer.append(data)
 
-    // Get current buffer contents
-    const bufferData = this.getBufferContents()
+    const bufferData = this.streamBuffer.getContents()
     let offset = 0
 
     while (offset < bufferData.length) {
@@ -77,62 +80,15 @@ export abstract class DialectParser {
       }
     }
 
-    // Consume processed bytes
-    this.consumeBuffer(offset)
+    this.streamBuffer.consume(offset)
     return results
-  }
-
-  /**
-   * Append data to ring buffer, growing if necessary
-   */
-  private appendToBuffer(data: Uint8Array): void {
-    const currentLength = this.bufferEnd - this.bufferStart
-    const requiredSize = currentLength + data.length
-
-    // Grow buffer if needed
-    if (requiredSize > this.buffer.length) {
-      const newSize = Math.max(this.buffer.length * 2, requiredSize)
-      const newBuffer = new Uint8Array(newSize)
-      newBuffer.set(this.getBufferContents())
-      this.buffer = newBuffer
-      this.bufferStart = 0
-      this.bufferEnd = currentLength
-    } else if (this.bufferEnd + data.length > this.buffer.length) {
-      // Compact: move data to start of buffer
-      const contents = this.getBufferContents()
-      this.buffer.set(contents)
-      this.bufferStart = 0
-      this.bufferEnd = currentLength
-    }
-
-    this.buffer.set(data, this.bufferEnd)
-    this.bufferEnd += data.length
-  }
-
-  /**
-   * Get current buffer contents as a view
-   */
-  private getBufferContents(): Uint8Array {
-    return this.buffer.subarray(this.bufferStart, this.bufferEnd)
-  }
-
-  /**
-   * Consume bytes from the start of the buffer
-   */
-  private consumeBuffer(bytes: number): void {
-    this.bufferStart += bytes
-    if (this.bufferStart === this.bufferEnd) {
-      this.bufferStart = 0
-      this.bufferEnd = 0
-    }
   }
 
   /**
    * Clear the internal buffer
    */
   resetBuffer(): void {
-    this.bufferStart = 0
-    this.bufferEnd = 0
+    this.streamBuffer.reset()
   }
 
   /**

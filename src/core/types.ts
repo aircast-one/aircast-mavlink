@@ -76,3 +76,34 @@ export type PayloadObject = Record<string, FieldValue>
  * Result of decoding a single field value
  */
 export type DecodedValue = { value: FieldValue; bytesRead: number }
+
+/**
+ * Interface for message parsing functionality
+ */
+export interface IMessageParser {
+  parseBytes(data: Uint8Array): ParsedMAVLinkMessage[]
+  decode(frame: MAVLinkFrame): ParsedMAVLinkMessage
+  resetBuffer(): void
+}
+
+/**
+ * Interface for message serialization functionality
+ */
+export interface IMessageSerializer {
+  serializeMessage(message: Record<string, unknown> & { message_name: string }): Uint8Array
+  completeMessage(
+    message: Record<string, unknown> & { message_name: string }
+  ): Record<string, unknown>
+}
+
+/**
+ * Interface for message registry functionality
+ */
+export interface IMessageRegistry {
+  getMessageDefinition(id: number): MessageDefinition | undefined
+  getMessageDefinitionByName(name: string): MessageDefinition | undefined
+  supportsMessage(messageId: number): boolean
+  supportsMessageName(messageName: string): boolean
+  getSupportedMessageIds(): number[]
+  getSupportedMessageNames(): string[]
+}
