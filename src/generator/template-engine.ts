@@ -197,9 +197,8 @@ export class {{capitalize dialectName}}Parser extends DialectParser {
   constructor() {
     super('{{{ dialectName }}}');
     this.setCrcExtraTable(CRC_EXTRA_TABLE);
-    for (const [id, def] of MESSAGE_REGISTRY) {
-      this.messageDefinitions.set(id, def);
-      this.messageDefinitionsByName.set(def.name, def);
+    for (const def of MESSAGE_REGISTRY.values()) {
+      this.registerMessageDefinition(def);
     }
   }
 
@@ -210,7 +209,7 @@ export class {{capitalize dialectName}}Parser extends DialectParser {
 
 // Dialect-specific serializer (delegates to parser)
 export class {{capitalize dialectName}}Serializer {
-  private parser: {{capitalize dialectName}}Parser;
+  readonly parser: {{capitalize dialectName}}Parser;
 
   constructor() {
     this.parser = new {{capitalize dialectName}}Parser();

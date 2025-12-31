@@ -199,7 +199,7 @@ export abstract class DialectParser {
       throw new Error(`Unknown message type: ${message.message_name}`);
     }
 
-    const messageFields = this.extractMessageFields(message, messageDef.fields);
+    const messageFields = this.extractMessageFields(message);
     const completeMessage = this.completeMessageWithDefaults(messageFields, messageDef.fields);
     const payload = encodePayload(completeMessage, messageDef.fields);
 
@@ -213,7 +213,8 @@ export abstract class DialectParser {
     }
 
     const needsV2 = messageDef.id > 255;
-    const userVersion = typeof message.protocol_version === 'number' ? message.protocol_version : undefined;
+    const userVersion =
+      typeof message.protocol_version === 'number' ? message.protocol_version : undefined
     const protocolVersion = (userVersion ?? (needsV2 ? 2 : 1)) as 1 | 2;
 
     return createFrame(
@@ -230,10 +231,7 @@ export abstract class DialectParser {
   /**
    * Extract message fields from payload structure
    */
-  private extractMessageFields(
-    message: Record<string, unknown>,
-    _fieldDefinitions: FieldDefinition[]
-  ): Record<string, unknown> {
+  private extractMessageFields(message: Record<string, unknown>): Record<string, unknown> {
     if (!message.payload || typeof message.payload !== 'object') {
       throw new Error(
         `Message must have a 'payload' object containing the message fields. ` +
