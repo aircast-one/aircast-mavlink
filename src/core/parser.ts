@@ -3,40 +3,40 @@ import {
   ParsedMAVLinkMessage,
   MAVLinkFrame,
   MessageDefinition,
-  FieldDefinition,
   IMessageParser,
   IMessageSerializer,
   IMessageRegistry,
 } from './types'
-import { parseFrame, createFrame } from './frame'
-import { decodePayload, encodePayload, getFieldDefaultValue, sortFieldsByWireOrder } from './codec'
+import { parseFrame } from './frame'
+import { decodePayload } from './codec'
 import { StreamBuffer } from './stream-buffer'
+import { MessageRegistry } from './message-registry'
+import { MessageSerializer } from './message-serializer'
 
 /**
- * Abstract base class for dialect-specific parsers
- * Implements parsing, serialization, and registry interfaces
+ * Abstract base class for dialect-specific parsers.
+ * Composes MessageRegistry and MessageSerializer for full functionality.
  */
 export abstract class DialectParser
   implements IMessageParser, IMessageSerializer, IMessageRegistry
 {
-  protected messageDefinitions: Map<number, MessageDefinition> = new Map()
-  protected messageDefinitionsByName: Map<string, MessageDefinition> = new Map()
-  protected crcExtraTable: Record<number, number> = {}
-  protected dialectName: string
-
-  private streamBuffer: StreamBuffer
+  protected readonly registry: MessageRegistry
+  protected readonly serializer: MessageSerializer
+  protected readonly dialectName: string
+  private readonly streamBuffer: StreamBuffer
 
   constructor(dialectName: string) {
     this.dialectName = dialectName
     this.streamBuffer = new StreamBuffer()
+    this.registry = new MessageRegistry()
+    this.serializer = new MessageSerializer(this.registry)
   }
 
   /**
-   * Register a message definition (updates both ID and name indexes)
+   * Register a message definition
    */
-  protected registerMessageDefinition(def: MessageDefinition): void {
-    this.messageDefinitions.set(def.id, def)
-    this.messageDefinitionsByName.set(def.name, def)
+  protected registerMessageDefinition(def: MessageDefinition, crcExtra: number): void {
+    this.registry.register(def, crcExtra)
   }
 
   /**
@@ -44,12 +44,7 @@ export abstract class DialectParser
    */
   abstract loadDefinitions(): Promise<void>
 
-  /**
-   * Set the CRC_EXTRA table for this dialect
-   */
-  protected setCrcExtraTable(table: Record<number, number>): void {
-    this.crcExtraTable = table
-  }
+  // ============ IMessageParser ============
 
   /**
    * Parse incoming bytes and return any complete messages
@@ -67,7 +62,7 @@ export abstract class DialectParser
     let offset = 0
 
     while (offset < bufferData.length) {
-      const frameResult = parseFrame(bufferData.subarray(offset), this.crcExtraTable)
+      const frameResult = parseFrame(bufferData.subarray(offset), this.registry.getCrcExtraTable())
 
       if (frameResult.frame) {
         const message = this.decode(frameResult.frame)
@@ -85,17 +80,10 @@ export abstract class DialectParser
   }
 
   /**
-   * Clear the internal buffer
-   */
-  resetBuffer(): void {
-    this.streamBuffer.reset()
-  }
-
-  /**
    * Decode a MAVLink frame into a parsed message
    */
   decode(frame: MAVLinkFrame): ParsedMAVLinkMessage {
-    const messageDef = this.messageDefinitions.get(frame.message_id)
+    const messageDef = this.registry.getMessageDefinition(frame.message_id)
     const protocolVersion = frame.protocol_version || (frame.magic === 0xfd ? 2 : 1)
 
     if (!messageDef) {
@@ -136,122 +124,19 @@ export abstract class DialectParser
   }
 
   /**
+   * Clear the internal buffer
+   */
+  resetBuffer(): void {
+    this.streamBuffer.reset()
+  }
+
+  // ============ IMessageSerializer (delegated) ============
+
+  /**
    * Serialize a message to MAVLink bytes
    */
   serializeMessage(message: Record<string, unknown> & { message_name: string }): Uint8Array {
-    const messageDef = this.messageDefinitionsByName.get(message.message_name)
-
-    if (!messageDef) {
-      throw new Error(`Unknown message type: ${message.message_name}`)
-    }
-
-    const messageFields = this.extractMessageFields(message)
-    const completeMessage = this.completeMessageWithDefaults(messageFields, messageDef.fields)
-    const payload = encodePayload(completeMessage, messageDef.fields)
-
-    const systemId = typeof message.system_id === 'number' ? message.system_id : 1
-    const componentId = typeof message.component_id === 'number' ? message.component_id : 1
-    const sequence = typeof message.sequence === 'number' ? message.sequence : 0
-
-    const crcExtra = this.crcExtraTable[messageDef.id]
-    if (crcExtra === undefined) {
-      throw new Error(`No CRC_EXTRA defined for message ID ${messageDef.id}`)
-    }
-
-    const needsV2 = messageDef.id > 255
-    const userVersion =
-      typeof message.protocol_version === 'number' ? message.protocol_version : undefined
-    const protocolVersion = (userVersion ?? (needsV2 ? 2 : 1)) as 1 | 2
-
-    return createFrame(
-      messageDef.id,
-      payload,
-      systemId,
-      componentId,
-      sequence,
-      crcExtra,
-      protocolVersion
-    )
-  }
-
-  /**
-   * Extract message fields from payload structure
-   */
-  private extractMessageFields(message: Record<string, unknown>): Record<string, unknown> {
-    if (!message.payload || typeof message.payload !== 'object') {
-      throw new Error(
-        `Message must have a 'payload' object containing the message fields. ` +
-          `Expected format: { message_name: '...', system_id: 1, component_id: 1, sequence: 0, payload: { ...fields } }`
-      )
-    }
-    return message.payload as Record<string, unknown>
-  }
-
-  /**
-   * Complete message with default values for missing fields
-   */
-  private completeMessageWithDefaults(
-    message: Record<string, unknown>,
-    fields: FieldDefinition[]
-  ): Record<string, unknown> {
-    const completeMessage = { ...message }
-
-    for (const field of fields) {
-      if (completeMessage[field.name] === undefined) {
-        completeMessage[field.name] = getFieldDefaultValue(field)
-      }
-    }
-
-    return completeMessage
-  }
-
-  /**
-   * Get message definition by ID
-   */
-  getMessageDefinition(id: number): MessageDefinition | undefined {
-    return this.messageDefinitions.get(id)
-  }
-
-  /**
-   * Get all supported message IDs
-   */
-  getSupportedMessageIds(): number[] {
-    return Array.from(this.messageDefinitions.keys()).sort((a, b) => a - b)
-  }
-
-  /**
-   * Get the dialect name
-   */
-  getDialectName(): string {
-    return this.dialectName
-  }
-
-  /**
-   * Check if a message ID is supported
-   */
-  supportsMessage(messageId: number): boolean {
-    return this.messageDefinitions.has(messageId)
-  }
-
-  /**
-   * Check if a message name is supported
-   */
-  supportsMessageName(messageName: string): boolean {
-    return this.messageDefinitionsByName.has(messageName)
-  }
-
-  /**
-   * Get message definition by name (O(1) lookup)
-   */
-  getMessageDefinitionByName(name: string): MessageDefinition | undefined {
-    return this.messageDefinitionsByName.get(name)
-  }
-
-  /**
-   * Get all supported message names
-   */
-  getSupportedMessageNames(): string[] {
-    return Array.from(this.messageDefinitionsByName.keys())
+    return this.serializer.serializeMessage(message)
   }
 
   /**
@@ -260,29 +145,57 @@ export abstract class DialectParser
   completeMessage(
     message: Record<string, unknown> & { message_name: string }
   ): Record<string, unknown> {
-    const messageDef = this.messageDefinitionsByName.get(message.message_name)
+    return this.serializer.completeMessage(message)
+  }
 
-    if (!messageDef) {
-      throw new Error(`Unknown message type: ${message.message_name}`)
-    }
+  // ============ IMessageRegistry (delegated) ============
 
-    if (!message.payload || typeof message.payload !== 'object') {
-      throw new Error(`Message must have a 'payload' object containing the message fields.`)
-    }
+  /**
+   * Get message definition by ID
+   */
+  getMessageDefinition(id: number): MessageDefinition | undefined {
+    return this.registry.getMessageDefinition(id)
+  }
 
-    const messageFields = message.payload as Record<string, unknown>
-    const sortedFields = sortFieldsByWireOrder(messageDef.fields)
+  /**
+   * Get message definition by name
+   */
+  getMessageDefinitionByName(name: string): MessageDefinition | undefined {
+    return this.registry.getMessageDefinitionByName(name)
+  }
 
-    const completedFields: Record<string, unknown> = { ...messageFields }
-    for (const field of sortedFields) {
-      if (completedFields[field.name] === undefined) {
-        completedFields[field.name] = getFieldDefaultValue(field)
-      }
-    }
+  /**
+   * Check if a message ID is supported
+   */
+  supportsMessage(messageId: number): boolean {
+    return this.registry.supportsMessage(messageId)
+  }
 
-    return {
-      ...message,
-      payload: completedFields,
-    }
+  /**
+   * Check if a message name is supported
+   */
+  supportsMessageName(messageName: string): boolean {
+    return this.registry.supportsMessageName(messageName)
+  }
+
+  /**
+   * Get all supported message IDs
+   */
+  getSupportedMessageIds(): number[] {
+    return this.registry.getSupportedMessageIds()
+  }
+
+  /**
+   * Get all supported message names
+   */
+  getSupportedMessageNames(): string[] {
+    return this.registry.getSupportedMessageNames()
+  }
+
+  /**
+   * Get the dialect name
+   */
+  getDialectName(): string {
+    return this.dialectName
   }
 }

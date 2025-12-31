@@ -196,9 +196,8 @@ export function registerMessage(id: number, definition: MessageDefinition, crcEx
 export class {{capitalize dialectName}}Parser extends DialectParser {
   constructor() {
     super('{{{ dialectName }}}');
-    this.setCrcExtraTable(CRC_EXTRA_TABLE);
-    for (const def of MESSAGE_REGISTRY.values()) {
-      this.registerMessageDefinition(def);
+    for (const [id, def] of MESSAGE_REGISTRY.entries()) {
+      this.registerMessageDefinition(def, CRC_EXTRA_TABLE[id]);
     }
   }
 
