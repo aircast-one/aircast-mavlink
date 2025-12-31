@@ -617,6 +617,8 @@ describe('TypeConverter', () => {
       })
 
       test('should handle array types in sorting', () => {
+        // Per MAVLink spec: arrays are sorted by ELEMENT type size, not total array size
+        // See: https://mavlink.io/en/guide/serialization.html#field_reordering
         const fields = [
           { name: 'single_byte', type: 'uint8_t', description: 'Single byte' },
           { name: 'byte_array', type: 'uint8_t[10]', description: 'Byte array' },
@@ -626,9 +628,9 @@ describe('TypeConverter', () => {
         const result = (converter as any).sortFieldsForWireFormat(fields)
 
         expect(result).toHaveLength(3)
-        expect(result[0].name).toBe('byte_array') // 10 bytes
-        expect(result[1].name).toBe('int_array') // 8 bytes
-        expect(result[2].name).toBe('single_byte') // 1 byte
+        expect(result[0].name).toBe('int_array') // uint32_t element = 4 bytes
+        expect(result[1].name).toBe('single_byte') // uint8_t = 1 byte (original order preserved)
+        expect(result[2].name).toBe('byte_array') // uint8_t element = 1 byte (original order preserved)
       })
 
       test('should maintain original order for fields of same size', () => {
