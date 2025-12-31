@@ -9,7 +9,7 @@ export function getTypeSize(type: string): number {
     case 'uint8_t':
     case 'int8_t':
     case 'char':
-      return 1;
+      return 1
     case 'uint16_t':
     case 'int16_t':
       return 2;
