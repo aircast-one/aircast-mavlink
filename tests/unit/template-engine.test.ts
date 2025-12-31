@@ -110,8 +110,7 @@ describe('TemplateEngine', () => {
       expect(result).toBeDefined()
       expect(typeof result).toBe('string')
       expect(result).toContain('export')
-      expect(result).toContain('./types')
-      expect(result).toContain('./enums')
+      expect(result).toContain('./parser')
       expect(result).toContain('./messages')
     })
 
@@ -121,7 +120,7 @@ describe('TemplateEngine', () => {
       expect(result).toBeDefined()
       expect(typeof result).toBe('string')
       expect(result).toContain('export')
-      expect(result).toContain('./types')
+      expect(result).toContain('./parser')
       expect(result).not.toContain('./enums')
       expect(result).toContain('./messages')
     })
@@ -132,7 +131,7 @@ describe('TemplateEngine', () => {
 
       expect(result).toBeDefined()
       expect(typeof result).toBe('string')
-      expect(result).toContain('./types')
+      expect(result).toContain('./parser')
       expect(result).not.toContain('./enums')
       expect(result).toContain('./messages')
     })
@@ -143,7 +142,7 @@ describe('TemplateEngine', () => {
 
       expect(result).toBeDefined()
       expect(typeof result).toBe('string')
-      expect(result).toContain('./types')
+      expect(result).toContain('./parser')
       expect(result).not.toContain('./enums')
       expect(result).toContain('./messages')
     })
@@ -163,7 +162,6 @@ describe('TemplateEngine', () => {
 
   describe('helper functions', () => {
     it('should properly format comments', () => {
-      const testComment = 'This is a test comment'
       const result = engine.generateTypes(mockDialect)
 
       // Test that comments are properly formatted in the output
@@ -514,8 +512,7 @@ describe('TemplateEngine Enhanced Tests', () => {
 
       const result = engine.generateIndex(dialect, true)
 
-      expect(result).toContain("export * from './types'")
-      expect(result).toContain("export * from './enums'")
+      // Index only exports parser now (types/enums are separate entry points)
       expect(result).toContain("export * from './parser'")
     })
 
@@ -528,7 +525,6 @@ describe('TemplateEngine Enhanced Tests', () => {
 
       const result = engine.generateIndex(dialect, false)
 
-      expect(result).toContain("export * from './types'")
       expect(result).toContain("export * from './parser'")
       // Should not include enums export
       expect(result).not.toContain("export * from './enums'")

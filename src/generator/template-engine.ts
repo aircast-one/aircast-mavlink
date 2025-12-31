@@ -135,28 +135,20 @@ export function is{{ name }}(msg: ParsedMAVLinkMessage): msg is ParsedMAVLinkMes
 `)
     )
 
-    // Index template - exports parser and imports all messages
+    // Index template - exports parser and imports all messages for registration
+    // Note: Individual message types/guards should be imported directly from message files
+    // to enable tree-shaking (e.g., import { isHeartbeat } from './messages/heartbeat')
     this.templates.set(
       'index',
       Handlebars.compile(`// Auto-generated TypeScript index file
-// Exports parser and all message types
+// For tree-shaking, import message types directly:
+//   import { isHeartbeat, MessageHeartbeat } from '@aircast-4g/mavlink/dialects/common/messages/heartbeat'
 
-export * from './types';
-{{#if includeEnums}}
-{{#if enums.length}}
-export * from './enums';
-{{/if}}
-{{/if}}
 export * from './parser';
 
-// Import all messages to register them
+// Import all messages to register them with the parser
 {{#each messages}}
 import './messages/{{ kebabCase originalName }}';
-{{/each}}
-
-// Re-export message types and guards
-{{#each messages}}
-export { Message{{ name }}, is{{ name }} } from './messages/{{ kebabCase originalName }}';
 {{/each}}
 `)
     )

@@ -21,6 +21,10 @@
       "types": "./dist/dialects/common/parser.d.ts",
       "import": "./dist/dialects/common/parser.js"
     },
+    "./dialects/common/enums": {
+      "types": "./dist/dialects/common/enums.d.ts",
+      "import": "./dist/dialects/common/enums.js"
+    },
     "./dialects/common/messages/*": {
       "types": "./dist/dialects/common/messages/*.d.ts",
       "import": "./dist/dialects/common/messages/*.js"
@@ -32,6 +36,10 @@
     "./dialects/minimal/parser": {
       "types": "./dist/dialects/minimal/parser.d.ts",
       "import": "./dist/dialects/minimal/parser.js"
+    },
+    "./dialects/minimal/enums": {
+      "types": "./dist/dialects/minimal/enums.d.ts",
+      "import": "./dist/dialects/minimal/enums.js"
     },
     "./dialects/minimal/messages/*": {
       "types": "./dist/dialects/minimal/messages/*.d.ts",
@@ -45,6 +53,10 @@
       "types": "./dist/dialects/ardupilotmega/parser.d.ts",
       "import": "./dist/dialects/ardupilotmega/parser.js"
     },
+    "./dialects/ardupilotmega/enums": {
+      "types": "./dist/dialects/ardupilotmega/enums.d.ts",
+      "import": "./dist/dialects/ardupilotmega/enums.js"
+    },
     "./dialects/ardupilotmega/messages/*": {
       "types": "./dist/dialects/ardupilotmega/messages/*.d.ts",
       "import": "./dist/dialects/ardupilotmega/messages/*.js"
@@ -56,6 +68,10 @@
     "./dialects/standard/parser": {
       "types": "./dist/dialects/standard/parser.d.ts",
       "import": "./dist/dialects/standard/parser.js"
+    },
+    "./dialects/standard/enums": {
+      "types": "./dist/dialects/standard/enums.d.ts",
+      "import": "./dist/dialects/standard/enums.js"
     },
     "./dialects/standard/messages/*": {
       "types": "./dist/dialects/standard/messages/*.d.ts",
@@ -69,6 +85,10 @@
       "types": "./dist/dialects/test/parser.d.ts",
       "import": "./dist/dialects/test/parser.js"
     },
+    "./dialects/test/enums": {
+      "types": "./dist/dialects/test/enums.d.ts",
+      "import": "./dist/dialects/test/enums.js"
+    },
     "./dialects/test/messages/*": {
       "types": "./dist/dialects/test/messages/*.d.ts",
       "import": "./dist/dialects/test/messages/*.js"
@@ -81,6 +101,10 @@
       "types": "./dist/dialects/paparazzi/parser.d.ts",
       "import": "./dist/dialects/paparazzi/parser.js"
     },
+    "./dialects/paparazzi/enums": {
+      "types": "./dist/dialects/paparazzi/enums.d.ts",
+      "import": "./dist/dialects/paparazzi/enums.js"
+    },
     "./dialects/paparazzi/messages/*": {
       "types": "./dist/dialects/paparazzi/messages/*.d.ts",
       "import": "./dist/dialects/paparazzi/messages/*.js"
@@ -92,6 +116,10 @@
     "./dialects/python_array_test/parser": {
       "types": "./dist/dialects/python_array_test/parser.d.ts",
       "import": "./dist/dialects/python_array_test/parser.js"
+    },
+    "./dialects/python_array_test/enums": {
+      "types": "./dist/dialects/python_array_test/enums.d.ts",
+      "import": "./dist/dialects/python_array_test/enums.js"
     },
     "./dialects/python_array_test/messages/*": {
       "types": "./dist/dialects/python_array_test/messages/*.d.ts",
