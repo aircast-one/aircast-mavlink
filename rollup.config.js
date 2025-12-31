@@ -1,5 +1,6 @@
 import resolve from '@rollup/plugin-node-resolve';
 import typescript from '@rollup/plugin-typescript';
+import terser from '@rollup/plugin-terser';
 import dts from 'rollup-plugin-dts';
 import { glob } from 'glob';
 
@@ -30,6 +31,15 @@ export default [
         declarationMap: false,
         compilerOptions: {
           module: 'esnext'
+        }
+      }),
+      terser({
+        compress: {
+          passes: 2
+        },
+        mangle: true,
+        format: {
+          comments: false
         }
       })
     ]
