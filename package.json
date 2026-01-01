@@ -13,6 +13,9 @@
       "require": "./dist/mavlink.cjs.js"
     },
     "./iife": "./dist/mavlink.iife.js",
+    "./core/types": {
+      "types": "./dist/core/types.d.ts"
+    },
     "./dialects/common": {
       "types": "./dist/dialects/common/index.d.ts",
       "import": "./dist/dialects/common/index.js"
