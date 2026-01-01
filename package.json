@@ -1,6 +1,6 @@
 {
   "name": "@aircast-4g/mavlink",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "TypeScript type generator for MAVLink dialects",
   "main": "dist/mavlink.cjs.js",
   "module": "dist/mavlink.esm.js",
