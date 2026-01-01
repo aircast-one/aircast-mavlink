@@ -3,7 +3,7 @@
 import {
   ArdupilotmegaSerializer,
   ArdupilotmegaParser,
-} from '../../src/generated/dialects/ardupilotmega'
+} from '../../src/generated/dialects/ardupilotmega/full'
 import { createConnection } from 'net'
 
 const serializer = new ArdupilotmegaSerializer()

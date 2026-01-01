@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 
-import { CommonSerializer } from '../../src/generated/dialects/common'
+import { CommonSerializer } from '../../src/generated/dialects/common/full'
 
 // Test REQUEST_DATA_STREAM with different message rates to see if any produces the expected checksum
 const serializer = new CommonSerializer()

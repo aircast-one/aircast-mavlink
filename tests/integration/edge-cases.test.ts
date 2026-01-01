@@ -1,5 +1,5 @@
-import { CommonParser, CommonSerializer } from '../../src/generated/dialects/common'
-import { MinimalParser } from '../../src/generated/dialects/minimal'
+import { CommonParser, CommonSerializer } from '../../src/generated/dialects/common/full'
+import { MinimalParser } from '../../src/generated/dialects/minimal/full'
 
 describe('Edge Cases and Error Conditions', () => {
   describe('Invalid Input Handling', () => {
@@ -19,11 +19,11 @@ describe('Edge Cases and Error Conditions', () => {
     })
 
     test('should handle null/undefined byte arrays gracefully', () => {
-      // @ts-ignore - Testing runtime behavior
+      // @ts-expect-error - Testing runtime behavior with null
       const parsed1 = parser.parseBytes(null)
       expect(parsed1).toHaveLength(0)
 
-      // @ts-ignore - Testing runtime behavior
+      // @ts-expect-error - Testing runtime behavior with undefined
       const parsed2 = parser.parseBytes(undefined)
       expect(parsed2).toHaveLength(0)
     })

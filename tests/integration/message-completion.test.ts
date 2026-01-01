@@ -1,4 +1,4 @@
-import { CommonParser, CommonSerializer } from '../../src/generated/dialects/common'
+import { CommonParser, CommonSerializer } from '../../src/generated/dialects/common/full'
 
 describe('Message Completion Feature', () => {
   let parser: CommonParser

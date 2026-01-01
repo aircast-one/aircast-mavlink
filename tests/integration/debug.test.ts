@@ -1,7 +1,7 @@
 import {
   ArdupilotmegaParser,
   ArdupilotmegaSerializer,
-} from '../../src/generated/dialects/ardupilotmega'
+} from '../../src/generated/dialects/ardupilotmega/full'
 
 describe('Debug Tests', () => {
   test('MEMINFO debug', () => {

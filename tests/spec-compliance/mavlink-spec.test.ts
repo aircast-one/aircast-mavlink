@@ -5,7 +5,7 @@
  * Reference: https://mavlink.io/en/guide/serialization.html
  */
 
-import { CommonParser, CommonSerializer } from '../../src/generated/dialects/common'
+import { CommonParser, CommonSerializer } from '../../src/generated/dialects/common/full'
 import '../../src/generated/dialects/common/messages/heartbeat'
 import '../../src/generated/dialects/common/messages/sys-status'
 import '../../src/generated/dialects/common/messages/param-set'

@@ -59,8 +59,8 @@ describe('MAVLinkGenerator', () => {
 
       expect(fs.readFile).toHaveBeenCalledWith('test.xml', 'utf-8')
       expect(fs.mkdir).toHaveBeenCalledWith('./output', { recursive: true })
-      // types, enums, parser, index + 1 message file
-      expect(fs.writeFile).toHaveBeenCalledTimes(5)
+      // types, parser, index, full, messages + 1 message file + 1 constant file (no constants/index)
+      expect(fs.writeFile).toHaveBeenCalledTimes(7)
     })
 
     it('should generate single file when specified', async () => {
@@ -80,12 +80,13 @@ describe('MAVLinkGenerator', () => {
 
       await generator.generateFromFile('test.xml', './output', noEnumsOptions)
 
-      // types, parser, index + 1 message file (no enums)
-      expect(fs.writeFile).toHaveBeenCalledTimes(4)
+      // types, parser, index, full, messages + 1 message file (no enums)
+      expect(fs.writeFile).toHaveBeenCalledTimes(6)
     })
   })
 
   describe('generateFromURL', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const mockFetch = require('node-fetch').default as jest.Mock
     const mockXMLContent = `<?xml version="1.0"?>
 <mavlink>

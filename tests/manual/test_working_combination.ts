@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 
-import { CommonSerializer } from '../../src/generated/dialects/common'
+import { CommonSerializer } from '../../src/generated/dialects/common/full'
 
 // Test REQUEST_DATA_STREAM serialization with parameters that should produce checksum 0x003c
 const serializer = new CommonSerializer()

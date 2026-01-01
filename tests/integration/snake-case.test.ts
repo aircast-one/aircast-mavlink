@@ -1,5 +1,5 @@
-import { CommonParser, CommonSerializer } from '../../src/generated/dialects/common'
-import { MinimalParser, MinimalSerializer } from '../../src/generated/dialects/minimal'
+import { CommonParser, CommonSerializer } from '../../src/generated/dialects/common/full'
+import { MinimalParser, MinimalSerializer } from '../../src/generated/dialects/minimal/full'
 
 describe('Snake Case Integration Tests - Message Parsing and Serialization', () => {
   describe('Common Dialect with snake_case', () => {
@@ -282,7 +282,6 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
         expect(parsedMessage.payload.mavlink_version).toBe(3)
       })
     })
-
   })
 
   describe('Common Dialect PROTOCOL_VERSION with snake_case', () => {

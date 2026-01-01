@@ -1,4 +1,4 @@
-import { CommonParser, CommonSerializer } from '../../src/generated/dialects/common'
+import { CommonParser, CommonSerializer } from '../../src/generated/dialects/common/full'
 
 describe('Payload Structure Support', () => {
   let parser: CommonParser

@@ -104,47 +104,27 @@ describe('TemplateEngine', () => {
   })
 
   describe('generateIndex', () => {
-    it('should generate index file with exports when enums are included', () => {
+    it('should generate documentation-only index file with no re-exports', () => {
       const result = engine.generateIndex(mockDialect, true)
 
       expect(result).toBeDefined()
       expect(typeof result).toBe('string')
-      expect(result).toContain('export')
-      expect(result).toContain('./parser')
-      expect(result).toContain('./messages')
+      // Index is documentation only - no exports
+      expect(result).not.toContain('export *')
+      expect(result).not.toContain('export {')
+      // Should contain import examples in comments
+      expect(result).toContain('// Parser')
+      expect(result).toContain('// Constants')
+      expect(result).toContain('// Message types')
+      expect(result).toContain('// Types')
     })
 
-    it('should generate index file without enums export when not included', () => {
+    it('should include dialect name in documentation', () => {
       const result = engine.generateIndex(mockDialect, false)
 
       expect(result).toBeDefined()
       expect(typeof result).toBe('string')
-      expect(result).toContain('export')
-      expect(result).toContain('./parser')
-      expect(result).not.toContain('./enums')
-      expect(result).toContain('./messages')
-    })
-
-    it('should handle dialects with no enums', () => {
-      const emptyEnumsDialect = { ...mockDialect, enums: [] }
-      const result = engine.generateIndex(emptyEnumsDialect, false)
-
-      expect(result).toBeDefined()
-      expect(typeof result).toBe('string')
-      expect(result).toContain('./parser')
-      expect(result).not.toContain('./enums')
-      expect(result).toContain('./messages')
-    })
-
-    it('should not export enums when includeEnums is true but no enums exist', () => {
-      const emptyEnumsDialect = { ...mockDialect, enums: [] }
-      const result = engine.generateIndex(emptyEnumsDialect, true)
-
-      expect(result).toBeDefined()
-      expect(typeof result).toBe('string')
-      expect(result).toContain('./parser')
-      expect(result).not.toContain('./enums')
-      expect(result).toContain('./messages')
+      expect(result).toContain('test dialect')
     })
   })
 
@@ -512,11 +492,12 @@ describe('TemplateEngine Enhanced Tests', () => {
 
       const result = engine.generateIndex(dialect, true)
 
-      // Index only exports parser now (types/enums are separate entry points)
-      expect(result).toContain("export * from './parser'")
+      // Index is documentation-only, no exports
+      expect(result).not.toContain('export *')
+      expect(result).toContain('// Parser')
     })
 
-    test('should generate index with includeEnums = false', () => {
+    test('should generate index as documentation only', () => {
       const dialect: TypeScriptDialect = {
         dialectName: 'test_index_no_enums',
         enums: [],
@@ -525,9 +506,9 @@ describe('TemplateEngine Enhanced Tests', () => {
 
       const result = engine.generateIndex(dialect, false)
 
-      expect(result).toContain("export * from './parser'")
-      // Should not include enums export
-      expect(result).not.toContain("export * from './enums'")
+      // Index is documentation-only, no exports
+      expect(result).not.toContain('export *')
+      expect(result).toContain('// Constants')
     })
   })
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals'
-import { CommonSerializer, CommonParser } from '../../src/generated/dialects/common'
+import { CommonSerializer, CommonParser } from '../../src/generated/dialects/common/full'
 
 describe('Node-MAVLink Compatibility Tests', () => {
   const commonSerializer = new CommonSerializer()

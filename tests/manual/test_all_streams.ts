@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 
-import { CommonSerializer } from '../../src/generated/dialects/common'
+import { CommonSerializer } from '../../src/generated/dialects/common/full'
 import { createConnection } from 'net'
 
 const serializer = new CommonSerializer()

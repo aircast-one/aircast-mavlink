@@ -48,26 +48,27 @@ export type {{ name }} =
 `)
     )
 
-    // Enums template
+    // Enums template - uses type unions + const values for zero runtime overhead
     this.templates.set(
       'enums',
       Handlebars.compile(`// Auto-generated TypeScript enums for {{ dialectName }} dialect
+// Uses type unions + const values for optimal tree-shaking (no runtime enum objects)
 
 {{#each enums}}
 {{#each description}}
 // {{ this }}
 {{/each}}
-export enum {{ name }}Enum {
+export type {{ name }} =
+{{#each values}}
+  | {{ value }}{{#unless @last}}{{/unless}}
+{{/each}};
+
 {{#each values}}
 {{#each description}}
-  // {{ this }}
+// {{ this }}
 {{/each}}
-  {{ name }} = {{ value }},
+export const {{ name }} = {{ value }} as const;
 {{/each}}
-}
-
-// Type alias for compatibility
-export type {{ name }} = {{ name }}Enum;
 
 {{/each}}
 {{#unless enums.length}}
@@ -77,29 +78,50 @@ export {};
 `)
     )
 
+    // Individual constant module template
+    this.templates.set(
+      'constant-module',
+      Handlebars.compile(`// Auto-generated constants: {{ name }}
+{{#each description}}
+// {{ this }}
+{{/each}}
+export type {{ name }} =
+{{#each values}}
+  | {{ value }}{{#unless @last}}{{/unless}}
+{{/each}};
+
+{{#each values}}
+{{#each description}}
+// {{ this }}
+{{/each}}
+export const {{ name }} = {{ value }} as const;
+{{/each}}
+`)
+    )
+
+    // Constants index template - re-exports all constants
+    this.templates.set(
+      'constants-index',
+      Handlebars.compile(`// Auto-generated constants for {{ dialectName }} dialect
+// Import individual constants for optimal tree-shaking
+
+{{#each enums}}
+export * from './{{ fileName }}';
+{{/each}}
+{{#unless enums.length}}
+// This dialect has no constants defined
+export {};
+{{/unless}}
+`)
+    )
+
     // Messages template
     this.templates.set(
       'messages',
       Handlebars.compile(`// Auto-generated TypeScript message interfaces for {{ dialectName }} dialect
+// Constants are in separate files: import { MAV_TYPE_QUADROTOR } from './constants/mav-type'
 
 import { ParsedMAVLinkMessage } from './types';
-{{#if includeEnums}}
-{{#if enums.length}}
-import type {
-{{#each enums}}
-  {{ name }},
-{{/each}}
-} from './enums';
-{{/if}}
-{{else}}
-{{#if enums.length}}
-import type {
-{{#each enums}}
-  {{ name }},
-{{/each}}
-} from './types';
-{{/if}}
-{{/if}}
 
 {{#each messages}}
 {{#each description}}
@@ -126,29 +148,65 @@ export interface MessageTypeMap {
 // Union type of all message types
 export type AnyMessage = ParsedMAVLinkMessage;
 
-// Type guard functions
+// Use discriminated union for type narrowing:
+//   if (msg.message_name === 'HEARTBEAT') { /* msg.payload is MessageHeartbeat */ }
+`)
+    )
+
+    // Index template - no re-exports, just documentation
+    this.templates.set(
+      'index',
+      Handlebars.compile(`// {{ dialectName }} dialect
+//
+// Import directly from specific modules for optimal tree-shaking:
+//
+// Parser (with all messages pre-registered):
+//   import { {{capitalize dialectName}}Parser } from '@aircast-4g/mavlink/dialects/{{ dialectName }}/full'
+//
+// Parser (register messages manually):
+//   import { {{capitalize dialectName}}Parser, registerMessage } from '@aircast-4g/mavlink/dialects/{{ dialectName }}/parser'
+//
+// Constants:
+//   import { MAV_TYPE_QUADROTOR } from '@aircast-4g/mavlink/dialects/{{ dialectName }}/constants/mav-type'
+//
+// Message types:
+//   import type { MessageHeartbeat } from '@aircast-4g/mavlink/dialects/{{ dialectName }}/messages/heartbeat'
+//
+// Types:
+//   import type { ParsedMAVLinkMessage } from '@aircast-4g/mavlink/dialects/{{ dialectName }}/types'
+`)
+    )
+
+    // Full bundle template - registers all messages
+    this.templates.set(
+      'full',
+      Handlebars.compile(`// Auto-generated full dialect bundle
+// All messages are pre-registered with the parser
+// Import constants directly: import { MAV_TYPE_QUADROTOR } from './constants/mav-type'
+
+export * from './parser';
+
+import { registerMessage } from './parser';
 {{#each messages}}
-export function is{{ name }}(msg: ParsedMAVLinkMessage): msg is ParsedMAVLinkMessage & { payload: Message{{ name }} } {
-  return msg.message_name === '{{ originalName }}';
-}
+import { {{ name }}Definition, {{ toUpperCase originalName }}_ID, {{ toUpperCase originalName }}_CRC_EXTRA } from './messages/{{ kebabCase originalName }}';
+{{/each}}
+
+// Register all messages
+{{#each messages}}
+registerMessage({{ toUpperCase originalName }}_ID, {{ name }}Definition, {{ toUpperCase originalName }}_CRC_EXTRA);
 {{/each}}
 `)
     )
 
-    // Index template - exports parser and imports all messages for registration
-    // Note: Individual message types/guards should be imported directly from message files
-    // to enable tree-shaking (e.g., import { isHeartbeat } from './messages/heartbeat')
+    // Messages re-export template (types only, no runtime code)
     this.templates.set(
-      'index',
-      Handlebars.compile(`// Auto-generated TypeScript index file
-// For tree-shaking, import message types directly:
-//   import { isHeartbeat, MessageHeartbeat } from '@aircast-4g/mavlink/dialects/common/messages/heartbeat'
+      'messages-reexport',
+      Handlebars.compile(`// Auto-generated message type re-exports for {{ dialectName }} dialect
+// This file exports only TypeScript types (interfaces) - no runtime code
+// Types are tree-shaken by bundlers, so this has no bundle size impact
 
-export * from './parser';
-
-// Import all messages to register them with the parser
 {{#each messages}}
-import './messages/{{ kebabCase originalName }}';
+export type { Message{{ name }} } from './messages/{{ kebabCase originalName }}';
 {{/each}}
 `)
     )
@@ -225,13 +283,12 @@ export class {{capitalize dialectName}}Serializer {
 `)
     )
 
-    // Individual message module template
+    // Individual message module template (pure exports, no side-effects)
     this.templates.set(
       'message-module',
       Handlebars.compile(`// Auto-generated message module for {{ originalName }}
 // Dialect: {{ dialectName }}
 
-import { registerMessage } from '../parser';
 import type { MessageDefinition } from '../../../../core';
 
 export const {{ constantName }}_ID = {{ id }};
@@ -255,13 +312,6 @@ export interface Message{{ name }} {
   {{ name }}{{#if optional}}?{{/if}}: {{ basicType type }};
 {{/each}}
 }
-
-export function is{{ name }}(msg: { message_name: string }): boolean {
-  return msg.message_name === '{{ originalName }}';
-}
-
-// Auto-register on import
-registerMessage({{ constantName }}_ID, {{ name }}Definition, {{ constantName }}_CRC_EXTRA);
 `)
     )
   }
@@ -337,6 +387,27 @@ registerMessage({{ constantName }}_ID, {{ name }}Definition, {{ constantName }}_
       throw new Error('Enums template not found')
     }
     return template(dialect)
+  }
+
+  generateConstantModule(enumDef: TypeScriptDialect['enums'][0]): string {
+    const template = this.templates.get('constant-module')
+    if (!template) {
+      throw new Error('Constant module template not found')
+    }
+    return template(enumDef)
+  }
+
+  generateConstantsIndex(dialect: TypeScriptDialect): string {
+    const template = this.templates.get('constants-index')
+    if (!template) {
+      throw new Error('Constants index template not found')
+    }
+    // Add fileName to each constant for the template
+    const enumsWithFileNames = dialect.enums.map((e) => ({
+      ...e,
+      fileName: e.name.toLowerCase().replace(/_/g, '-'),
+    }))
+    return template({ ...dialect, enums: enumsWithFileNames })
   }
 
   generateMessages(dialect: TypeScriptDialect, includeEnums: boolean = false): string {
@@ -430,5 +501,21 @@ registerMessage({{ constantName }}_ID, {{ name }}Definition, {{ constantName }}_
       throw new Error('Message module template not found')
     }
     return template(context)
+  }
+
+  generateFull(dialect: TypeScriptDialect): string {
+    const template = this.templates.get('full')
+    if (!template) {
+      throw new Error('Full template not found')
+    }
+    return template(dialect)
+  }
+
+  generateMessagesReexport(dialect: TypeScriptDialect): string {
+    const template = this.templates.get('messages-reexport')
+    if (!template) {
+      throw new Error('Messages re-export template not found')
+    }
+    return template(dialect)
   }
 }

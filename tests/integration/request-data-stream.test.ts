@@ -3,7 +3,7 @@ import { createConnection, Socket } from 'net'
 import {
   ArdupilotmegaSerializer,
   ArdupilotmegaParser,
-} from '../../src/generated/dialects/ardupilotmega'
+} from '../../src/generated/dialects/ardupilotmega/full'
 
 describe('REQUEST_DATA_STREAM Integration Tests', () => {
   const SITL_HOST = process.env.SITL_HOST || 'dev.aircast.one'

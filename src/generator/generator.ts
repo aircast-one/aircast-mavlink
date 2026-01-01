@@ -56,8 +56,15 @@ export class MAVLinkGenerator {
       await fs.writeFile(join(outputPath, 'types.ts'), typesContent)
 
       if (options.includeEnums) {
-        const enumsContent = this.templateEngine.generateEnums(tsDialect)
-        await fs.writeFile(join(outputPath, 'enums.ts'), enumsContent)
+        // Generate constants/ directory with individual constant files (no index - import directly)
+        const constantsDir = join(outputPath, 'constants')
+        await fs.mkdir(constantsDir, { recursive: true })
+
+        for (const enumDef of tsDialect.enums) {
+          const constantContent = this.templateEngine.generateConstantModule(enumDef)
+          const fileName = enumDef.name.toLowerCase().replace(/_/g, '-') + '.ts'
+          await fs.writeFile(join(constantsDir, fileName), constantContent)
+        }
       }
 
       // Generate parser with message registry
@@ -93,6 +100,14 @@ export class MAVLinkGenerator {
 
       const indexContent = this.templateEngine.generateIndex(tsDialect, options.includeEnums)
       await fs.writeFile(join(outputPath, 'index.ts'), indexContent)
+
+      // Generate full.ts with all messages pre-registered
+      const fullContent = this.templateEngine.generateFull(tsDialect)
+      await fs.writeFile(join(outputPath, 'full.ts'), fullContent)
+
+      // Generate messages.ts with type re-exports (for main thread usage)
+      const messagesReexportContent = this.templateEngine.generateMessagesReexport(tsDialect)
+      await fs.writeFile(join(outputPath, 'messages.ts'), messagesReexportContent)
     }
 
     console.log(`Generated TypeScript types for ${options.dialectName} in ${outputPath}`)

@@ -142,7 +142,8 @@ export class CommonDialectTestBase extends MAVLinkTestBase {
   protected serializer: any
 
   beforeEach() {
-    const { CommonParser, CommonSerializer } = require('../../src/generated/dialects/common')
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { CommonParser, CommonSerializer } = require('../../src/generated/dialects/common/full')
     this.parser = new CommonParser()
     this.serializer = new CommonSerializer()
   }
@@ -160,7 +161,12 @@ export class MinimalDialectTestBase extends MAVLinkTestBase {
   protected serializer: any
 
   beforeEach() {
-    const { MinimalParser, MinimalSerializer } = require('../../src/generated/dialects/minimal')
+    /* eslint-disable @typescript-eslint/no-var-requires */
+    const {
+      MinimalParser,
+      MinimalSerializer,
+    } = require('../../src/generated/dialects/minimal/full')
+    /* eslint-enable @typescript-eslint/no-var-requires */
     this.parser = new MinimalParser()
     this.serializer = new MinimalSerializer()
   }
@@ -178,10 +184,12 @@ export class ArdupilotmegaDialectTestBase extends MAVLinkTestBase {
   protected serializer: any
 
   beforeEach() {
+    /* eslint-disable @typescript-eslint/no-var-requires */
     const {
       ArdupilotmegaParser,
       ArdupilotmegaSerializer,
-    } = require('../../src/generated/dialects/ardupilotmega')
+    } = require('../../src/generated/dialects/ardupilotmega/full')
+    /* eslint-enable @typescript-eslint/no-var-requires */
     this.parser = new ArdupilotmegaParser()
     this.serializer = new ArdupilotmegaSerializer()
   }

@@ -1,23 +1,23 @@
-import resolve from '@rollup/plugin-node-resolve';
-import typescript from '@rollup/plugin-typescript';
-import terser from '@rollup/plugin-terser';
-import dts from 'rollup-plugin-dts';
-import { glob } from 'glob';
+import resolve from '@rollup/plugin-node-resolve'
+import typescript from '@rollup/plugin-typescript'
+import terser from '@rollup/plugin-terser'
+import dts from 'rollup-plugin-dts'
+import { glob } from 'glob'
 
-
-// Get all dialect entry points (index.ts, parser.ts, and all message modules)
-const dialectFiles = glob.sync('src/generated/dialects/*/{index,parser}.ts');
-const messageFiles = glob.sync('src/generated/dialects/*/messages/*.ts');
-const allFiles = [...dialectFiles, ...messageFiles];
+// Get all dialect entry points and all message/constant modules
+const dialectFiles = glob.sync('src/generated/dialects/*/{index,parser,full,messages}.ts')
+const messageFiles = glob.sync('src/generated/dialects/*/messages/*.ts')
+const constantFiles = glob.sync('src/generated/dialects/*/constants/*.ts')
+const allFiles = [...dialectFiles, ...messageFiles, ...constantFiles]
 
 const dialectEntries = allFiles.reduce((acc, file) => {
   // Convert src/generated/dialects/common/index.ts -> dialects/common/index
   // Convert src/generated/dialects/common/parser.ts -> dialects/common/parser
   // Convert src/generated/dialects/common/messages/heartbeat.ts -> dialects/common/messages/heartbeat
-  const relativePath = file.replace('src/generated/', '').replace('.ts', '');
-  acc[relativePath] = file;
-  return acc;
-}, {});
+  const relativePath = file.replace('src/generated/', '').replace('.ts', '')
+  acc[relativePath] = file
+  return acc
+}, {})
 
 export default [
   // Tree-shakeable dialect modules
@@ -29,7 +29,7 @@ export default [
       sourcemap: true,
       entryFileNames: '[name].js',
       preserveModules: true,
-      preserveModulesRoot: 'src/generated'
+      preserveModulesRoot: 'src/generated',
     },
     plugins: [
       resolve(),
@@ -38,19 +38,19 @@ export default [
         declaration: false,
         declarationMap: false,
         compilerOptions: {
-          module: 'esnext'
-        }
+          module: 'esnext',
+        },
       }),
       terser({
         compress: {
-          passes: 2
+          passes: 2,
         },
         mangle: true,
         format: {
-          comments: false
-        }
-      })
-    ]
+          comments: false,
+        },
+      }),
+    ],
   },
 
   // Type declarations
@@ -61,8 +61,8 @@ export default [
       format: 'es',
       entryFileNames: '[name].d.ts',
       preserveModules: true,
-      preserveModulesRoot: 'src/generated'
+      preserveModulesRoot: 'src/generated',
     },
-    plugins: [dts()]
-  }
-];
+    plugins: [dts()],
+  },
+]

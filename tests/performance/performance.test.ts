@@ -1,5 +1,5 @@
-import { CommonParser, CommonSerializer } from '../../src/generated/dialects/common'
-import { MinimalParser, MinimalSerializer } from '../../src/generated/dialects/minimal'
+import { CommonParser, CommonSerializer } from '../../src/generated/dialects/common/full'
+import { MinimalParser, MinimalSerializer } from '../../src/generated/dialects/minimal/full'
 
 describe('Performance and Stress Tests', () => {
   let parser: CommonParser
