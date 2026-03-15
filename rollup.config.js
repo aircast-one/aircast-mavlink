@@ -26,7 +26,7 @@ export default [
     output: {
       dir: 'dist',
       format: 'es',
-      sourcemap: true,
+      sourcemap: false,
       entryFileNames: '[name].js',
       preserveModules: true,
       preserveModulesRoot: 'src/generated',
