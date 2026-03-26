@@ -15,47 +15,47 @@ on:
         default: 'latest'
         type: choice
         options:
-        - latest
-        - beta
-        - alpha
+          - latest
+          - beta
+          - alpha
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: read
       packages: write
-      
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        registry-url: 'https://registry.npmjs.org'
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Build project
-      run: npm run build
-      
-    - name: Publish to npm
-      run: |
-        TAG="${{ github.event.inputs.tag || 'latest' }}"
-        echo "Publishing to npm with tag: $TAG"
-        npm publish --tag $TAG
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        
-    - name: Create release summary
-      run: |
-        PACKAGE_NAME=$(npm pkg get name | tr -d '"')
-        PACKAGE_VERSION=$(npm pkg get version | tr -d '"')
-        
-        echo "## 📦 Package Published" >> $GITHUB_STEP_SUMMARY
-        echo "**Package:** \`$PACKAGE_NAME@$PACKAGE_VERSION\`" >> $GITHUB_STEP_SUMMARY
-        echo "**Tag:** \`${{ github.event.inputs.tag || 'latest' }}\`" >> $GITHUB_STEP_SUMMARY
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Publish to npm
+        run: |
+          TAG="${{ github.event.inputs.tag || 'latest' }}"
+          echo "Publishing to npm with tag: $TAG"
+          npm publish --tag $TAG
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create release summary
+        run: |
+          PACKAGE_NAME=$(npm pkg get name | tr -d '"')
+          PACKAGE_VERSION=$(npm pkg get version | tr -d '"')
+
+          echo "## 📦 Package Published" >> $GITHUB_STEP_SUMMARY
+          echo "**Package:** \`$PACKAGE_NAME@$PACKAGE_VERSION\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag:** \`${{ github.event.inputs.tag || 'latest' }}\`" >> $GITHUB_STEP_SUMMARY
