@@ -28,7 +28,7 @@ function crcAccumulateString(crc: number, str: string): number {
 /**
  * Get the size of a MAVLink base type in bytes (for wire order sorting)
  */
-function getTypeSize(type: string): number {
+export function getTypeSize(type: string): number {
   switch (type) {
     case 'double':
     case 'uint64_t':

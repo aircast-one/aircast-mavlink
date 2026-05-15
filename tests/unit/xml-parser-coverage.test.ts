@@ -1,14 +1,9 @@
 import { XMLParser } from '../../src/generator/xml-parser'
 import { promises as fs } from 'fs'
 
-// Mock node-fetch for URL parsing tests
-jest.mock('node-fetch', () => {
-  return jest.fn()
-})
-
 // Mock xml2js
 jest.mock('xml2js', () => ({
-  parseString: jest.fn()
+  parseString: jest.fn(),
 }))
 
 // Helper to access private methods for testing
@@ -36,9 +31,9 @@ describe('XMLParser Additional Coverage', () => {
         entry: [],
       }
 
-      const result = getPrivateMethods(parser).processEnum(
-        enumData
-      ) as ReturnType<XMLParser['processEnum']>
+      const result = getPrivateMethods(parser).processEnum(enumData) as ReturnType<
+        XMLParser['processEnum']
+      >
       expect(result).toBeNull()
     })
 
@@ -48,9 +43,9 @@ describe('XMLParser Additional Coverage', () => {
         description: 'Test enum',
       }
 
-      const result = getPrivateMethods(parser).processEnum(
-        enumData
-      ) as ReturnType<XMLParser['processEnum']>
+      const result = getPrivateMethods(parser).processEnum(enumData) as ReturnType<
+        XMLParser['processEnum']
+      >
       expect(result).toBeNull()
     })
 
@@ -64,9 +59,9 @@ describe('XMLParser Additional Coverage', () => {
         },
       }
 
-      const result = getPrivateMethods(parser).processEnum(
-        enumData
-      ) as ReturnType<XMLParser['processEnum']>
+      const result = getPrivateMethods(parser).processEnum(enumData) as ReturnType<
+        XMLParser['processEnum']
+      >
       expect(result).toBeDefined()
       expect(result).not.toBeNull()
       expect(result!.name).toBe('SINGLE_ENTRY_ENUM')
@@ -84,9 +79,9 @@ describe('XMLParser Additional Coverage', () => {
         ],
       }
 
-      const result = getPrivateMethods(parser).processEnum(
-        enumData
-      ) as ReturnType<XMLParser['processEnum']>
+      const result = getPrivateMethods(parser).processEnum(enumData) as ReturnType<
+        XMLParser['processEnum']
+      >
       expect(result).toBeDefined()
       expect(result).not.toBeNull()
       expect(result!.entries).toHaveLength(2) // Only valid entries
@@ -102,9 +97,9 @@ describe('XMLParser Additional Coverage', () => {
         ],
       }
 
-      const result = getPrivateMethods(parser).processEnum(
-        enumData
-      ) as ReturnType<XMLParser['processEnum']>
+      const result = getPrivateMethods(parser).processEnum(enumData) as ReturnType<
+        XMLParser['processEnum']
+      >
       expect(result).toBeDefined()
       expect(result).not.toBeNull()
       expect(result!.entries).toHaveLength(1) // Only valid entry
@@ -120,9 +115,9 @@ describe('XMLParser Additional Coverage', () => {
         },
       }
 
-      const result = getPrivateMethods(parser).processEnum(
-        enumData
-      ) as ReturnType<XMLParser['processEnum']>
+      const result = getPrivateMethods(parser).processEnum(enumData) as ReturnType<
+        XMLParser['processEnum']
+      >
       expect(result).toBeDefined()
       expect(result).not.toBeNull()
       expect(result!.entries[0].description).toBe('Description from underscore property')
@@ -135,9 +130,9 @@ describe('XMLParser Additional Coverage', () => {
         entry: [{ $: { name: 'BIT_0', value: '1' } }, { $: { name: 'BIT_1', value: '2' } }],
       }
 
-      const result = getPrivateMethods(parser).processEnum(
-        enumData
-      ) as ReturnType<XMLParser['processEnum']>
+      const result = getPrivateMethods(parser).processEnum(enumData) as ReturnType<
+        XMLParser['processEnum']
+      >
       expect(result).toBeDefined()
       expect(result).not.toBeNull()
       expect(result!.bitmask).toBe(true)
@@ -151,9 +146,7 @@ describe('XMLParser Additional Coverage', () => {
         field: [],
       }
 
-      const result = getPrivateMethods(parser).processMessage(
-        messageData
-      )
+      const result = getPrivateMethods(parser).processMessage(messageData)
       expect(result).toBeNull()
     })
 
@@ -163,9 +156,7 @@ describe('XMLParser Additional Coverage', () => {
         description: 'Test message',
       }
 
-      const result1 = getPrivateMethods(parser).processMessage(
-        messageData1
-      )
+      const result1 = getPrivateMethods(parser).processMessage(messageData1)
       expect(result1).toBeNull()
 
       const messageData2 = {
@@ -173,9 +164,7 @@ describe('XMLParser Additional Coverage', () => {
         description: 'Test message',
       }
 
-      const result2 = getPrivateMethods(parser).processMessage(
-        messageData2
-      )
+      const result2 = getPrivateMethods(parser).processMessage(messageData2)
       expect(result2).toBeNull()
     })
 
@@ -189,9 +178,7 @@ describe('XMLParser Additional Coverage', () => {
         },
       }
 
-      const result = getPrivateMethods(parser).processMessage(
-        messageData
-      )
+      const result = getPrivateMethods(parser).processMessage(messageData)
       expect(result).toBeDefined()
       expect(result.fields).toHaveLength(1)
       expect(result.fields[0].name).toBe('single_field')
@@ -208,9 +195,7 @@ describe('XMLParser Additional Coverage', () => {
         ],
       }
 
-      const result = getPrivateMethods(parser).processMessage(
-        messageData
-      )
+      const result = getPrivateMethods(parser).processMessage(messageData)
       expect(result).toBeDefined()
       expect(result.fields).toHaveLength(1) // Only valid field
       expect(result.fields[0].name).toBe('valid_field')
@@ -225,9 +210,7 @@ describe('XMLParser Additional Coverage', () => {
         ],
       }
 
-      const result = getPrivateMethods(parser).processMessage(
-        messageData
-      )
+      const result = getPrivateMethods(parser).processMessage(messageData)
       expect(result).toBeDefined()
       expect(result.fields).toHaveLength(1) // Only valid field
     })
@@ -242,9 +225,7 @@ describe('XMLParser Additional Coverage', () => {
         ],
       }
 
-      const result = getPrivateMethods(parser).processMessage(
-        messageData
-      )
+      const result = getPrivateMethods(parser).processMessage(messageData)
       expect(result).toBeDefined()
       expect(result.fields).toHaveLength(1) // Only valid field
       expect(result.fields[0].name).toBe('valid_field')
@@ -259,9 +240,7 @@ describe('XMLParser Additional Coverage', () => {
         },
       }
 
-      const result = getPrivateMethods(parser).processMessage(
-        messageData
-      )
+      const result = getPrivateMethods(parser).processMessage(messageData)
       expect(result).toBeDefined()
       expect(result.fields[0].description).toBe('Description from underscore property')
     })
@@ -283,9 +262,7 @@ describe('XMLParser Additional Coverage', () => {
         ],
       }
 
-      const result = getPrivateMethods(parser).processMessage(
-        messageData
-      )
+      const result = getPrivateMethods(parser).processMessage(messageData)
       expect(result).toBeDefined()
       expect(result.fields).toHaveLength(33)
 
@@ -412,88 +389,38 @@ describe('XMLParser Additional Coverage', () => {
 
   describe('getFieldSize and getSingleFieldSize edge cases', () => {
     test('should handle array field types', () => {
-      expect(
-        getPrivateMethods(parser).getFieldSize('uint8_t[10]')
-      ).toBe(10)
-      expect(
-        getPrivateMethods(parser).getFieldSize('uint16_t[5]')
-      ).toBe(10)
-      expect(
-        getPrivateMethods(parser).getFieldSize('uint32_t[3]')
-      ).toBe(12)
-      expect(
-        getPrivateMethods(parser).getFieldSize('uint64_t[2]')
-      ).toBe(16)
-      expect(
-        getPrivateMethods(parser).getFieldSize('float[4]')
-      ).toBe(16)
-      expect(
-        getPrivateMethods(parser).getFieldSize('double[2]')
-      ).toBe(16)
-      expect(
-        getPrivateMethods(parser).getFieldSize('char[20]')
-      ).toBe(20)
+      expect(getPrivateMethods(parser).getFieldSize('uint8_t[10]')).toBe(10)
+      expect(getPrivateMethods(parser).getFieldSize('uint16_t[5]')).toBe(10)
+      expect(getPrivateMethods(parser).getFieldSize('uint32_t[3]')).toBe(12)
+      expect(getPrivateMethods(parser).getFieldSize('uint64_t[2]')).toBe(16)
+      expect(getPrivateMethods(parser).getFieldSize('float[4]')).toBe(16)
+      expect(getPrivateMethods(parser).getFieldSize('double[2]')).toBe(16)
+      expect(getPrivateMethods(parser).getFieldSize('char[20]')).toBe(20)
     })
 
     test('should handle single field types', () => {
-      expect(
-        getPrivateMethods(parser).getFieldSize('uint8_t')
-      ).toBe(1)
-      expect(
-        getPrivateMethods(parser).getFieldSize('int8_t')
-      ).toBe(1)
-      expect(getPrivateMethods(parser).getFieldSize('char')).toBe(
-        1
-      )
-      expect(
-        getPrivateMethods(parser).getFieldSize('uint16_t')
-      ).toBe(2)
-      expect(
-        getPrivateMethods(parser).getFieldSize('int16_t')
-      ).toBe(2)
-      expect(
-        getPrivateMethods(parser).getFieldSize('uint32_t')
-      ).toBe(4)
-      expect(
-        getPrivateMethods(parser).getFieldSize('int32_t')
-      ).toBe(4)
-      expect(
-        getPrivateMethods(parser).getFieldSize('float')
-      ).toBe(4)
-      expect(
-        getPrivateMethods(parser).getFieldSize('uint64_t')
-      ).toBe(8)
-      expect(
-        getPrivateMethods(parser).getFieldSize('int64_t')
-      ).toBe(8)
-      expect(
-        getPrivateMethods(parser).getFieldSize('double')
-      ).toBe(8)
+      expect(getPrivateMethods(parser).getFieldSize('uint8_t')).toBe(1)
+      expect(getPrivateMethods(parser).getFieldSize('int8_t')).toBe(1)
+      expect(getPrivateMethods(parser).getFieldSize('char')).toBe(1)
+      expect(getPrivateMethods(parser).getFieldSize('uint16_t')).toBe(2)
+      expect(getPrivateMethods(parser).getFieldSize('int16_t')).toBe(2)
+      expect(getPrivateMethods(parser).getFieldSize('uint32_t')).toBe(4)
+      expect(getPrivateMethods(parser).getFieldSize('int32_t')).toBe(4)
+      expect(getPrivateMethods(parser).getFieldSize('float')).toBe(4)
+      expect(getPrivateMethods(parser).getFieldSize('uint64_t')).toBe(8)
+      expect(getPrivateMethods(parser).getFieldSize('int64_t')).toBe(8)
+      expect(getPrivateMethods(parser).getFieldSize('double')).toBe(8)
     })
 
-    test('should handle unknown types with default size', () => {
-      expect(
-        getPrivateMethods(parser).getSingleFieldSize(
-          'unknown_type'
-        )
-      ).toBe(1)
-      expect(
-        getPrivateMethods(parser).getSingleFieldSize(
-          'custom_type_t'
-        )
-      ).toBe(1)
-      expect(
-        getPrivateMethods(parser).getSingleFieldSize('')
-      ).toBe(1)
+    test('should throw for unknown types', () => {
+      expect(() => getPrivateMethods(parser).getFieldSize('unknown_type')).toThrow(
+        'Unknown MAVLink type for CRC computation: unknown_type'
+      )
     })
 
     test('should handle array with non-numeric length gracefully', () => {
-      expect(
-        getPrivateMethods(parser).getFieldSize('uint8_t[invalid]')
-      ).toBe(NaN)
-      expect(
-        getPrivateMethods(parser).getFieldSize('uint8_t[]')
-      ).toBe(NaN)
+      expect(getPrivateMethods(parser).getFieldSize('uint8_t[invalid]')).toBe(NaN)
+      expect(getPrivateMethods(parser).getFieldSize('uint8_t[]')).toBe(NaN)
     })
   })
 
@@ -534,9 +461,9 @@ describe('XMLParser Additional Coverage', () => {
         messages: {},
       }
 
-      const result = await (
+      const result = (await (
         parser as unknown as Record<string, (...args: unknown[]) => unknown>
-      ).processDefinition(mavlinkData, 'test-source') as any
+      ).processDefinition(mavlinkData, 'test-source')) as any
       expect(result.dialect).toBe(42)
     })
 
@@ -545,9 +472,9 @@ describe('XMLParser Additional Coverage', () => {
         // No version, dialect, includes, enums, or messages
       }
 
-      const result = await (
+      const result = (await (
         parser as unknown as Record<string, (...args: unknown[]) => unknown>
-      ).processDefinition(mavlinkData, 'test-source') as any
+      ).processDefinition(mavlinkData, 'test-source')) as any
       expect(result).toBeDefined()
       expect(result.version).toBeUndefined()
       expect(result.dialect).toBeUndefined()
@@ -563,8 +490,9 @@ describe('XMLParser Additional Coverage', () => {
       await fs.writeFile(testFile, '<test>content</test>')
 
       // Mock xml2js to return error
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const xml2js = require('xml2js')
-      xml2js.parseString.mockImplementation((str: any, options: any, callback: any) => {
+      xml2js.parseString.mockImplementation((_str: any, _options: any, callback: any) => {
         callback(new Error('XML parsing failed'), null)
       })
 
@@ -587,6 +515,7 @@ describe('XMLParser Additional Coverage', () => {
       await fs.writeFile(testFile, xmlContent)
 
       // Reset xml2js mock to work normally
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const xml2js = require('xml2js')
       const { parseString } = jest.requireActual('xml2js')
       xml2js.parseString.mockImplementation(parseString)

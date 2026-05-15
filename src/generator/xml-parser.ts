@@ -1,5 +1,4 @@
 import { parseString } from 'xml2js'
-import fetch from 'node-fetch'
 import { promises as fs } from 'fs'
 import path from 'path'
 import {
@@ -11,6 +10,7 @@ import {
   XMLEnum,
   XMLMessage,
 } from '../types'
+import { getTypeSize } from './mavlink-crc'
 
 export class XMLParser {
   private processedUrls = new Set<string>()
@@ -27,6 +27,10 @@ export class XMLParser {
   async parseFromFile(filePath: string): Promise<MAVLinkDialectDefinition> {
     const xmlContent = await fs.readFile(filePath, 'utf-8')
     return this.parseXML(xmlContent, filePath)
+  }
+
+  async parseFromString(xmlContent: string): Promise<MAVLinkDialectDefinition> {
+    return this.parseXML(xmlContent, '<string>')
   }
 
   private async parseXML(xmlContent: string, source: string): Promise<MAVLinkDialectDefinition> {
@@ -289,35 +293,11 @@ export class XMLParser {
   }
 
   private getFieldSize(type: string): number {
-    // Handle array types
     if (type.includes('[') && type.includes(']')) {
       const baseType = type.substring(0, type.indexOf('['))
       const arrayLength = parseInt(type.substring(type.indexOf('[') + 1, type.indexOf(']')))
-      return this.getSingleFieldSize(baseType) * arrayLength
+      return getTypeSize(baseType) * arrayLength
     }
-
-    return this.getSingleFieldSize(type)
-  }
-
-  private getSingleFieldSize(type: string): number {
-    switch (type) {
-      case 'uint8_t':
-      case 'int8_t':
-      case 'char':
-        return 1
-      case 'uint16_t':
-      case 'int16_t':
-        return 2
-      case 'uint32_t':
-      case 'int32_t':
-      case 'float':
-        return 4
-      case 'uint64_t':
-      case 'int64_t':
-      case 'double':
-        return 8
-      default:
-        return 1
-    }
+    return getTypeSize(type)
   }
 }

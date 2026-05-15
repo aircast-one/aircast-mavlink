@@ -563,43 +563,6 @@ describe('TypeConverter', () => {
       })
     })
 
-    describe('getBaseTypeSize edge cases', () => {
-      test('should warn about unknown types and return 1', () => {
-        const consoleSpy = jest.spyOn(console, 'warn').mockImplementation()
-
-        const result = (converter as any).getBaseTypeSize('unknown_mavlink_type')
-
-        expect(result).toBe(1)
-        expect(consoleSpy).toHaveBeenCalledWith(
-          'Unknown MAVLink type for size calculation: unknown_mavlink_type'
-        )
-
-        consoleSpy.mockRestore()
-      })
-
-      test('should handle all known MAVLink types correctly', () => {
-        const testCases = [
-          { type: 'double', expectedSize: 8 },
-          { type: 'uint64_t', expectedSize: 8 },
-          { type: 'int64_t', expectedSize: 8 },
-          { type: 'float', expectedSize: 4 },
-          { type: 'uint32_t', expectedSize: 4 },
-          { type: 'int32_t', expectedSize: 4 },
-          { type: 'uint16_t', expectedSize: 2 },
-          { type: 'int16_t', expectedSize: 2 },
-          { type: 'uint8_t', expectedSize: 1 },
-          { type: 'int8_t', expectedSize: 1 },
-          { type: 'char', expectedSize: 1 },
-          { type: 'uint8_t_mavlink_version', expectedSize: 1 },
-        ]
-
-        testCases.forEach(({ type, expectedSize }) => {
-          const result = (converter as any).getBaseTypeSize(type)
-          expect(result).toBe(expectedSize)
-        })
-      })
-    })
-
     describe('sortFieldsForWireFormat', () => {
       test('should sort fields by size correctly', () => {
         const fields = [

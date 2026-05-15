@@ -5,9 +5,6 @@ import { promises as fs } from 'fs'
 import { existsSync } from 'fs'
 import path from 'path'
 
-// Mock node-fetch
-jest.mock('node-fetch', () => jest.fn())
-
 const execAsync = promisify(exec)
 
 describe('CLI Tests', () => {
@@ -31,7 +28,7 @@ describe('CLI Tests', () => {
   describe('generate command', () => {
     test('should show error when no input provided', async () => {
       try {
-        await execAsync(`npx tsx ${cliPath} generate`)
+        await execAsync(`bun ${cliPath} generate`)
         throw new Error('Should have thrown an error')
       } catch (error: any) {
         expect(error.code).toBe(1)
@@ -41,7 +38,7 @@ describe('CLI Tests', () => {
 
     test('should show error for non-existent file', async () => {
       try {
-        await execAsync(`npx tsx ${cliPath} generate -i nonexistent.xml -o ${testOutputDir}`)
+        await execAsync(`bun ${cliPath} generate -i nonexistent.xml -o ${testOutputDir}`)
         throw new Error('Should have thrown an error')
       } catch (error: any) {
         expect(error.code).toBe(1)
@@ -76,7 +73,7 @@ describe('CLI Tests', () => {
 
       try {
         const result = await execAsync(
-          `npx tsx ${cliPath} generate -i ${testXmlPath} -o ${testOutputDir} -n test`
+          `bun ${cliPath} generate -i ${testXmlPath} -o ${testOutputDir} -n test`
         )
 
         expect(result.stdout).toContain('Generating TypeScript types for test')
@@ -111,7 +108,7 @@ describe('CLI Tests', () => {
 
       try {
         const result = await execAsync(
-          `npx tsx ${cliPath} generate -i ${testXmlPath} -o ${testOutputDir} -n testsingle -f single`
+          `bun ${cliPath} generate -i ${testXmlPath} -o ${testOutputDir} -n testsingle -f single`
         )
 
         expect(result.stdout).toContain('Format: single')
@@ -137,7 +134,7 @@ describe('CLI Tests', () => {
 
       try {
         await execAsync(
-          `npx tsx ${cliPath} generate -i ${testXmlPath} -o ${testOutputDir} -n testinvalid`
+          `bun ${cliPath} generate -i ${testXmlPath} -o ${testOutputDir} -n testinvalid`
         )
         throw new Error('Should have thrown an error')
       } catch (error: any) {
@@ -166,11 +163,11 @@ describe('CLI Tests', () => {
 
       try {
         const result = await execAsync(
-          `npx tsx ${cliPath} generate -i ${testXmlPath} -o ${testOutputDir}`
+          `bun ${cliPath} generate -i ${testXmlPath} -o ${testOutputDir}`
         )
 
         // Should auto-extract name from filename
-        expect(result.stdout).toContain('Generating TypeScript types for customdialect_name')
+        expect(result.stdout).toContain('Generating TypeScript types for customdialectname')
       } finally {
         if (existsSync(testXmlPath)) {
           await fs.unlink(testXmlPath)
@@ -182,7 +179,7 @@ describe('CLI Tests', () => {
   describe('batch command', () => {
     test('should show successful batch generation message', async () => {
       try {
-        const result = await execAsync(`npx tsx ${cliPath} batch -o ${testOutputDir} -d common`)
+        const result = await execAsync(`bun ${cliPath} batch -o ${testOutputDir} -d common`)
         expect(result.stdout).toContain('Generating TypeScript types for MAVLink dialects')
         expect(result.stdout).toContain('Processing specific dialects: common')
       } catch (error: any) {
@@ -194,7 +191,7 @@ describe('CLI Tests', () => {
     test('should generate package.json when --package flag is used', async () => {
       try {
         const result = await execAsync(
-          `npx tsx ${cliPath} batch -o ${testOutputDir} -d minimal --package`
+          `bun ${cliPath} batch -o ${testOutputDir} -d minimal --package`
         )
         // Check the command processes the package flag
         expect(result.stdout).toContain('Generating TypeScript types for MAVLink dialects')
@@ -207,7 +204,7 @@ describe('CLI Tests', () => {
     test('should handle batch generation errors', async () => {
       try {
         // Try with invalid dialect name to trigger error path
-        await execAsync(`npx tsx ${cliPath} batch -o ${testOutputDir} -d nonexistentdialect123`)
+        await execAsync(`bun ${cliPath} batch -o ${testOutputDir} -d nonexistentdialect123`)
         throw new Error('Should have thrown an error')
       } catch (error: any) {
         // Error should be thrown, exact structure may vary
@@ -221,7 +218,7 @@ describe('CLI Tests', () => {
 
     test('should process all dialects when no specific dialects provided', async () => {
       try {
-        const result = await execAsync(`npx tsx ${cliPath} batch -o ${testOutputDir}`)
+        const result = await execAsync(`bun ${cliPath} batch -o ${testOutputDir}`)
         expect(result.stdout).toContain('Processing all available dialects')
       } catch (error: any) {
         // Network might fail, but we test the flow
@@ -232,7 +229,7 @@ describe('CLI Tests', () => {
     test('should parse dialect format option correctly', async () => {
       try {
         const result = await execAsync(
-          `npx tsx ${cliPath} batch -o ${testOutputDir} -d common -f single`
+          `bun ${cliPath} batch -o ${testOutputDir} -d common -f single`
         )
         expect(result.stdout).toContain('Format: single')
       } catch (error: any) {
@@ -248,7 +245,7 @@ describe('CLI Tests', () => {
     })
 
     test('should fetch and display available dialects', async () => {
-      const result = await execAsync(`npx tsx ${cliPath} list`)
+      const result = await execAsync(`bun ${cliPath} list`)
 
       expect(result.stdout).toContain('Fetching available MAVLink dialects')
       expect(result.stdout).toContain('Available MAVLink dialects:')
@@ -279,7 +276,7 @@ describe('CLI Tests', () => {
       ]
 
       // We test this indirectly through the generate command
-      for (const testCase of testCases) {
+      for (const _testCase of testCases) {
         const testXmlPath = path.join(__dirname, 'temp-test.xml')
         const testXml = `<?xml version="1.0"?>
 <mavlink>
@@ -296,7 +293,7 @@ describe('CLI Tests', () => {
         try {
           // Test the name extraction by checking output
           const result = await execAsync(
-            `npx tsx ${cliPath} generate -i ${testXmlPath} -o ${testOutputDir} --help`
+            `bun ${cliPath} generate -i ${testXmlPath} -o ${testOutputDir} --help`
           )
           // This tests that the CLI can parse and process the command structure
           expect(result.stdout).toContain('Generate TypeScript types from a MAVLink XML dialect')
@@ -315,7 +312,7 @@ describe('CLI Tests', () => {
   describe('error handlers', () => {
     test('should handle unhandled rejection', (done) => {
       // Create a separate process to test error handlers
-      const testScript = `
+      const _testScript = `
         const { spawn } = require('child_process');
         const path = require('path');
         
@@ -359,7 +356,7 @@ describe('CLI Tests', () => {
 
       try {
         const result = await execAsync(
-          `npx tsx ${cliPath} generate -i ${testXmlPath} -o ${testOutputDir} -n optionstest -f separate --no-enums --no-type-guards`
+          `bun ${cliPath} generate -i ${testXmlPath} -o ${testOutputDir} -n optionstest -f separate --no-enums --no-type-guards`
         )
 
         expect(result.stdout).toContain('Generating TypeScript types for optionstest')
@@ -375,7 +372,7 @@ describe('CLI Tests', () => {
     test('should parse all batch command options correctly', async () => {
       try {
         const result = await execAsync(
-          `npx tsx ${cliPath} batch -o ${testOutputDir} -d common,minimal -f single --no-enums --no-type-guards --package`
+          `bun ${cliPath} batch -o ${testOutputDir} -d common,minimal -f single --no-enums --no-type-guards --package`
         )
 
         expect(result.stdout).toContain('Processing specific dialects: common, minimal')

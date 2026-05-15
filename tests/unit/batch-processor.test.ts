@@ -1,10 +1,7 @@
 import { BatchProcessor } from '../../src/generator/batch-processor'
 
-// Mock node-fetch
-jest.mock('node-fetch', () => ({
-  __esModule: true,
-  default: jest.fn(),
-}))
+const mockFetch = jest.fn()
+global.fetch = mockFetch as unknown as typeof fetch
 
 // Mock the file system
 jest.mock('fs', () => ({
@@ -16,11 +13,11 @@ jest.mock('fs', () => ({
 
 describe('BatchProcessor', () => {
   let processor: BatchProcessor
-  const mockFetch = require('node-fetch').default as jest.Mock
 
   beforeEach(() => {
     processor = new BatchProcessor()
     jest.clearAllMocks()
+    global.fetch = mockFetch as unknown as typeof fetch
   })
 
   describe('processAllDialects', () => {
@@ -60,6 +57,7 @@ describe('BatchProcessor', () => {
         })
       })
 
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const fs = require('fs')
       fs.promises.mkdir.mockResolvedValue(undefined)
       fs.promises.writeFile.mockResolvedValue(undefined)
@@ -118,6 +116,7 @@ describe('BatchProcessor', () => {
         text: () => Promise.resolve(mockXMLContent),
       })
 
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const fs = require('fs')
       fs.promises.mkdir.mockResolvedValue(undefined)
       fs.promises.writeFile.mockResolvedValue(undefined)
@@ -175,6 +174,7 @@ describe('BatchProcessor', () => {
 
   describe('generatePackageJson', () => {
     beforeEach(() => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const fs = require('fs')
       fs.promises.writeFile.mockResolvedValue(undefined)
     })
@@ -182,6 +182,7 @@ describe('BatchProcessor', () => {
     it('should generate package.json file', async () => {
       await processor.generatePackageJson('./output')
 
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const fs = require('fs')
       expect(fs.promises.writeFile).toHaveBeenCalledWith(
         expect.stringContaining('package.json'),
@@ -192,6 +193,7 @@ describe('BatchProcessor', () => {
     it('should generate tsconfig.json file', async () => {
       await processor.generatePackageJson('./output')
 
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const fs = require('fs')
       expect(fs.promises.writeFile).toHaveBeenCalledWith(
         expect.stringContaining('tsconfig.json'),

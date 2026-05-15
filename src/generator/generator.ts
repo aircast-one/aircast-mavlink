@@ -1,10 +1,9 @@
 import { promises as fs } from 'fs'
 import { join } from 'path'
-import { parseString } from 'xml2js'
 import { XMLParser } from './xml-parser'
 import { TypeConverter } from './type-converter'
 import { TemplateEngine } from './template-engine'
-import { GenerationOptions, MAVLinkDialect, MAVLinkDialectDefinition } from '../types'
+import { GenerationOptions, MAVLinkDialectDefinition } from '../types'
 
 export class MAVLinkGenerator {
   private xmlParser: XMLParser
@@ -123,32 +122,12 @@ export async function generateTypesFromXML(
   xmlContent: string,
   options: GenerationOptions
 ): Promise<{ [filename: string]: string }> {
+  const xmlParser = new XMLParser()
   const converter = new TypeConverter()
   const templateEngine = new TemplateEngine()
 
-  // Parse XML directly from string
-  const definition = await new Promise<MAVLinkDialect>((resolve, reject) => {
-    parseString(
-      xmlContent,
-      { explicitArray: false },
-      (err: Error | null, result: { mavlink: MAVLinkDialect }) => {
-        if (err) reject(err)
-        else resolve(result.mavlink)
-      }
-    )
-  })
-
-  // Convert parsed XML to definition format for compatibility
-  const definitionForConverter: MAVLinkDialectDefinition = {
-    version: definition.version,
-    dialect: definition.dialect ? parseInt(definition.dialect) : undefined,
-    includes: [],
-    enums: [],
-    messages: [],
-  }
-
-  // Convert to TypeScript
-  const tsDialect = converter.convert(definitionForConverter, options.dialectName)
+  const definition = await xmlParser.parseFromString(xmlContent)
+  const tsDialect = converter.convert(definition, options.dialectName)
 
   const files: { [filename: string]: string } = {}
 

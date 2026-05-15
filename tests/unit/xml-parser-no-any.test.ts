@@ -2,10 +2,11 @@ import { XMLParser } from '../../src/generator/xml-parser'
 import { promises as fs } from 'fs'
 import path from 'path'
 
-// Mock node-fetch
-jest.mock('node-fetch', () => jest.fn())
+const mockFetch = jest.fn()
 
-const mockFetch = require('node-fetch') as jest.Mock
+beforeEach(() => {
+  global.fetch = mockFetch as unknown as typeof fetch
+})
 
 describe('XMLParser - Coverage without any', () => {
   let parser: XMLParser

@@ -2,10 +2,11 @@ import { XMLParser } from '../../src/generator/xml-parser'
 import { promises as fs, existsSync } from 'fs'
 import * as path from 'path'
 
-// Mock node-fetch for URL parsing tests
-jest.mock('node-fetch', () => jest.fn())
+const mockFetch = jest.fn()
 
-const mockFetch = require('node-fetch') as jest.Mock
+beforeEach(() => {
+  global.fetch = mockFetch as unknown as typeof fetch
+})
 
 // Helper to access private methods for testing
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -96,9 +97,7 @@ describe('XMLParser', () => {
     it('should return null for invalid enum data', () => {
       const invalidEnumData = { description: 'Invalid enum' }
 
-      const result = getPrivateMethods(parser).processEnum(
-        invalidEnumData
-      )
+      const result = getPrivateMethods(parser).processEnum(invalidEnumData)
 
       expect(result).toBeNull()
     })
@@ -115,9 +114,7 @@ describe('XMLParser', () => {
         ],
       }
 
-      const result = getPrivateMethods(parser).processMessage(
-        mockMessageData
-      )
+      const result = getPrivateMethods(parser).processMessage(mockMessageData)
 
       expect(result).toBeDefined()
       expect(result.name).toBe('HEARTBEAT')
@@ -131,9 +128,7 @@ describe('XMLParser', () => {
     it('should return null for invalid message data', () => {
       const invalidMessageData = { description: 'Invalid message' }
 
-      const result = getPrivateMethods(parser).processMessage(
-        invalidMessageData
-      )
+      const result = getPrivateMethods(parser).processMessage(invalidMessageData)
 
       expect(result).toBeNull()
     })

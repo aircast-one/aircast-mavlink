@@ -11,11 +11,8 @@ jest.mock('fs', () => ({
   },
 }))
 
-// Mock node-fetch
-jest.mock('node-fetch', () => ({
-  __esModule: true,
-  default: jest.fn(),
-}))
+const mockFetch = jest.fn()
+global.fetch = mockFetch as unknown as typeof fetch
 
 describe('MAVLinkGenerator', () => {
   let generator: MAVLinkGenerator
@@ -29,6 +26,7 @@ describe('MAVLinkGenerator', () => {
   beforeEach(() => {
     generator = new MAVLinkGenerator()
     jest.clearAllMocks()
+    global.fetch = mockFetch as unknown as typeof fetch
   })
 
   describe('generateFromFile', () => {
@@ -86,8 +84,6 @@ describe('MAVLinkGenerator', () => {
   })
 
   describe('generateFromURL', () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const mockFetch = require('node-fetch').default as jest.Mock
     const mockXMLContent = `<?xml version="1.0"?>
 <mavlink>
   <version>3</version>

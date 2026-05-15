@@ -4,14 +4,17 @@ import { Command } from 'commander'
 import { MAVLinkGenerator } from './generator/generator'
 import { BatchProcessor } from './generator/batch-processor'
 import { GenerationOptions } from './types'
-import { existsSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
+import { resolve } from 'path'
+
+const pkg = JSON.parse(readFileSync(resolve(__dirname, '..', 'package.json'), 'utf-8'))
 
 const program = new Command()
 
 program
   .name('aircast-mavlink')
   .description('Aircast MAVLink TypeScript type generator')
-  .version('1.0.0')
+  .version(pkg.version)
 
 program
   .command('generate')
@@ -115,7 +118,6 @@ program
     try {
       console.log('Fetching available MAVLink dialects...')
 
-      const fetch = (await import('node-fetch')).default
       const response = await fetch(
         'https://api.github.com/repos/mavlink/mavlink/contents/message_definitions/v1.0'
       )
@@ -143,10 +145,9 @@ program
   })
 
 function extractDialectName(input: string): string {
-  // Extract dialect name from file path or URL
   const parts = input.split('/')
   const filename = parts[parts.length - 1]
-  return filename.replace('.xml', '').toLowerCase().replace('_', '')
+  return filename.replace('.xml', '').toLowerCase().replace(/_/g, '')
 }
 
 // Handle uncaught errors

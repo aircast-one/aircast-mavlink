@@ -1,6 +1,5 @@
 import { promises as fs } from 'fs'
 import { join } from 'path'
-import fetch from 'node-fetch'
 import { MAVLinkGenerator } from './generator'
 import { GenerationOptions } from '../types'
 
@@ -42,7 +41,7 @@ export class BatchProcessor {
     // Process each dialect
     const processedDialects: string[] = []
     for (const file of xmlFiles) {
-      const dialectName = file.name.replace('.xml', '').toLowerCase().replace('_', '')
+      const dialectName = file.name.replace('.xml', '').toLowerCase().replace(/_/g, '')
       const dialectOutputDir = join(options.outputDir, dialectName)
 
       console.log(`Processing ${file.name}...`)

@@ -14,12 +14,10 @@ import { MessageRegistry } from './message-registry'
 import { MessageSerializer } from './message-serializer'
 
 /**
- * Abstract base class for dialect-specific parsers.
+ * Base class for dialect-specific parsers.
  * Composes MessageRegistry and MessageSerializer for full functionality.
  */
-export abstract class DialectParser
-  implements IMessageParser, IMessageSerializer, IMessageRegistry
-{
+export class DialectParser implements IMessageParser, IMessageSerializer, IMessageRegistry {
   protected readonly registry: MessageRegistry
   protected readonly serializer: MessageSerializer
   protected readonly dialectName: string
@@ -38,11 +36,6 @@ export abstract class DialectParser
   protected registerMessageDefinition(def: MessageDefinition, crcExtra: number): void {
     this.registry.register(def, crcExtra)
   }
-
-  /**
-   * Load message definitions - must be implemented by dialect-specific subclass
-   */
-  abstract loadDefinitions(): Promise<void>
 
   // ============ IMessageParser ============
 

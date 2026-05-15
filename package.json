@@ -117,7 +117,7 @@
     "build:bundle": "rollup -c",
     "generate": "npm run gen:all",
     "start": "node dist/cli.js",
-    "dev": "tsx src/cli.ts",
+    "dev": "bun src/cli.ts",
     "test": "jest",
     "test:coverage": "jest --coverage --collectCoverageFrom=\"src/**/*.ts\" --collectCoverageFrom=\"!src/generated/**/*\"",
     "typecheck": "tsc --noEmit",
@@ -126,13 +126,13 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json}\"",
     "clean": "rm -rf dist src/generated",
-    "gen:common": "tsx src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/common.xml -o ./src/generated/dialects/common",
-    "gen:ardupilotmega": "tsx src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/ardupilotmega.xml -o ./src/generated/dialects/ardupilotmega",
-    "gen:minimal": "tsx src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/minimal.xml -o ./src/generated/dialects/minimal",
-    "gen:test": "tsx src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/test.xml -o ./src/generated/dialects/test",
-    "gen:paparazzi": "tsx src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/paparazzi.xml -o ./src/generated/dialects/paparazzi",
-    "gen:python_array_test": "tsx src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/python_array_test.xml -o ./src/generated/dialects/python_array_test",
-    "gen:standard": "tsx src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/standard.xml -o ./src/generated/dialects/standard",
+    "gen:common": "bun src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/common.xml -o ./src/generated/dialects/common",
+    "gen:ardupilotmega": "bun src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/ardupilotmega.xml -o ./src/generated/dialects/ardupilotmega",
+    "gen:minimal": "bun src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/minimal.xml -o ./src/generated/dialects/minimal",
+    "gen:test": "bun src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/test.xml -o ./src/generated/dialects/test",
+    "gen:paparazzi": "bun src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/paparazzi.xml -o ./src/generated/dialects/paparazzi",
+    "gen:python_array_test": "bun src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/python_array_test.xml -o ./src/generated/dialects/python_array_test",
+    "gen:standard": "bun src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/standard.xml -o ./src/generated/dialects/standard",
     "gen:all": "npm run gen:common && npm run gen:ardupilotmega && npm run gen:minimal && npm run gen:standard",
     "release:patch": "npm version patch && git push origin master --tags && gh release create v$(node -p \"require('./package.json').version\") --title \"v$(node -p \"require('./package.json').version\")\" --generate-notes",
     "release:minor": "npm version minor && git push origin master --tags && gh release create v$(node -p \"require('./package.json').version\") --title \"v$(node -p \"require('./package.json').version\")\" --generate-notes",
@@ -163,14 +163,12 @@
   "devDependencies": {
     "commander": "^11.1.0",
     "handlebars": "^4.7.8",
-    "node-fetch": "^2.7.0",
     "xml2js": "^0.6.2",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^11.1.6",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.19.7",
-    "@types/node-fetch": "^2.6.11",
     "@types/xml2js": "^0.4.14",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
@@ -186,10 +184,9 @@
     "rollup-plugin-dts": "^6.1.0",
     "ts-jest": "^29.4.0",
     "tslib": "^2.6.2",
-    "tsx": "^4.6.0",
     "typescript": "5.3.3"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   }
 }

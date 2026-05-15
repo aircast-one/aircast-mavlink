@@ -251,9 +251,6 @@ export class {{capitalize dialectName}}Parser extends DialectParser {
     }
   }
 
-  async loadDefinitions(): Promise<void> {
-    // Definitions are registered on import
-  }
 }
 
 // Dialect-specific serializer (delegates to parser)

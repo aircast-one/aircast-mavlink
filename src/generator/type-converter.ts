@@ -8,7 +8,7 @@ import {
   TypeScriptMessage,
   TypeScriptField,
 } from '../types'
-import { computeCrcExtra } from './mavlink-crc'
+import { computeCrcExtra, getTypeSize } from './mavlink-crc'
 
 export class TypeConverter {
   private static readonly MAVLINK_TO_TS_TYPES: Record<string, string> = {
@@ -118,7 +118,7 @@ export class TypeConverter {
 
     // Sort fields according to MAVLink wire format specification
     // Most messages maintain XML order, only specific messages need size-based sorting
-    const sortedFields = this.sortFieldsForWireFormat(messageDef.fields, messageDef.name)
+    const sortedFields = this.sortFieldsForWireFormat(messageDef.fields)
 
     for (const fieldDef of sortedFields) {
       const tsField = this.convertField(fieldDef, enums)
@@ -132,106 +132,32 @@ export class TypeConverter {
 
   /**
    * Sort fields according to MAVLink wire format specification.
-   * Most MAVLink messages should maintain their XML field order.
-   * Only specific messages with known field ordering issues should be sorted by size.
-   *
-   * References:
-   * - MAVLink wire format specification
-   * - Compatibility with reference implementations (node-mavlink, pymavlink)
+   * Core fields sorted by type size (descending), extension fields last in XML order.
    */
-
-  private sortFieldsForWireFormat(
-    fields: FieldDefinition[],
-    messageName: string
-  ): FieldDefinition[] {
-    // Messages that are correctly defined in XML and should maintain field order
-    // Being conservative - only including messages I'm certain about
-    const correctlyOrderedMessages: string | string[] = [
-      // NOTE: GPS_RAW_INT removed - analysis shows it needs size-based sorting too
-      // NOTE: HEARTBEAT should use size-based sorting per MAVLink wire format spec
-    ]
-
-    // If this message is correctly ordered in XML, maintain the original field order
-    if (correctlyOrderedMessages.includes(messageName)) {
-      // Separate extension fields from core fields but don't sort either
-      const coreFields = fields.filter((field) => !field.extension)
-      const extensionFields = fields.filter((field) => field.extension)
-
-      // Return fields in original XML order
-      return [...coreFields, ...extensionFields]
-    }
-
-    // For messages with known field ordering issues, sort by size
-    // Separate extension fields from core fields
+  private sortFieldsForWireFormat(fields: FieldDefinition[]): FieldDefinition[] {
     const coreFields = fields.filter((field) => !field.extension)
     const extensionFields = fields.filter((field) => field.extension)
-
-    // Sort core fields by size (largest first) for wire format efficiency
     const sortedCoreFields = this.sortFieldsBySize(coreFields)
-
-    // Extension fields maintain XML order (not sorted by size per MAVLink spec)
-    const sortedExtensionFields = extensionFields
-
-    // Return core fields first, then extension fields
-    return [...sortedCoreFields, ...sortedExtensionFields]
+    return [...sortedCoreFields, ...extensionFields]
   }
 
   private sortFieldsBySize(fields: FieldDefinition[]): FieldDefinition[] {
-    // Field size mapping based on MAVLink specification
-    // Per MAVLink wire format: arrays are sorted by ELEMENT type size, not total array size
-    // See: https://mavlink.io/en/guide/serialization.html#field_reordering
-    const getFieldSize = (type: string): number => {
-      // Handle array types - sort by element type size (not total array size)
+    const getElementTypeSize = (type: string): number => {
       const arrayMatch = type.match(/^(.+?)\[(\d+)\]$/)
-      if (arrayMatch) {
-        const baseType = arrayMatch[1]
-        return this.getBaseTypeSize(baseType) // Element size only
-      }
-      return this.getBaseTypeSize(type)
+      const baseType = arrayMatch ? arrayMatch[1] : type
+      return getTypeSize(baseType)
     }
 
-    // Create a copy of the fields array to avoid mutating the original
     const sortedFields = [...fields]
 
-    // Sort by field size (descending) then by original order (stable sort)
     sortedFields.sort((a, b) => {
-      const sizeA = getFieldSize(a.type)
-      const sizeB = getFieldSize(b.type)
-
-      if (sizeA !== sizeB) {
-        return sizeB - sizeA // Larger fields first
-      }
-
-      // If sizes are equal, maintain original order (stable sort)
+      const sizeA = getElementTypeSize(a.type)
+      const sizeB = getElementTypeSize(b.type)
+      if (sizeA !== sizeB) return sizeB - sizeA
       return fields.indexOf(a) - fields.indexOf(b)
     })
 
     return sortedFields
-  }
-
-  private getBaseTypeSize(type: string): number {
-    switch (type) {
-      case 'double':
-        return 8
-      case 'uint64_t':
-      case 'int64_t':
-        return 8
-      case 'float':
-      case 'uint32_t':
-      case 'int32_t':
-        return 4
-      case 'uint16_t':
-      case 'int16_t':
-        return 2
-      case 'uint8_t':
-      case 'int8_t':
-      case 'char':
-      case 'uint8_t_mavlink_version':
-        return 1
-      default:
-        console.warn(`Unknown MAVLink type for size calculation: ${type}`)
-        return 1 // Default to 1 byte
-    }
   }
 
   private convertField(fieldDef: FieldDefinition, enums: TypeScriptEnum[]): TypeScriptField | null {
