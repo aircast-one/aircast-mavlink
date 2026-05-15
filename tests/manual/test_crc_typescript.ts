@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 
-import { MAVLinkCRC } from '../../src/generator/mavlink-crc'
+import { MAVLinkCRC } from '../../src/core/crc'
 
 // Test the TypeScript CRC implementation with the working combination
 console.log('Testing TypeScript CRC implementation...')

@@ -89,6 +89,9 @@ export function parseFrame(
   frame.payload = data.slice(frameOffset, frameOffset + frame.length)
   frameOffset += frame.length
 
+  // Save position for CRC validation (header + payload, before checksum)
+  const crcDataEnd = frameOffset
+
   frame.checksum = data[frameOffset] | (data[frameOffset + 1] << 8)
   frameOffset += 2
 
@@ -100,8 +103,8 @@ export function parseFrame(
     }
   }
 
-  // Validate CRC
-  const headerAndPayload = data.slice(offset + 1, offset + frameOffset - offset - 2)
+  // Validate CRC over header + payload (excluding magic byte, checksum, and signature)
+  const headerAndPayload = data.slice(offset + 1, crcDataEnd)
   frame.crc_ok = MAVLinkCRC.validateWithTable(
     headerAndPayload,
     frame.message_id,

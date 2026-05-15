@@ -8,7 +8,7 @@ import {
   TypeScriptMessage,
   TypeScriptField,
 } from '../types'
-import { CRC_EXTRA } from './mavlink-crc'
+import { computeCrcExtra } from './mavlink-crc'
 
 export class TypeConverter {
   private static readonly MAVLINK_TO_TS_TYPES: Record<string, string> = {
@@ -113,7 +113,7 @@ export class TypeConverter {
       originalName: messageDef.name,
       description: this.parseDescription(messageDef.description || ''),
       fields: [],
-      crcExtra: CRC_EXTRA[messageDef.id] || 0,
+      crcExtra: computeCrcExtra(messageDef.name, messageDef.fields),
     }
 
     // Sort fields according to MAVLink wire format specification
