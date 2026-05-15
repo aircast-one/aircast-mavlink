@@ -24,8 +24,7 @@
       "import": "./dist/dialects/common/messages.js"
     },
     "./dialects/common/messages/*": {
-      "types": "./dist/dialects/common/messages/*.d.ts",
-      "import": "./dist/dialects/common/messages/*.js"
+      "types": "./dist/dialects/common/messages/*.d.ts"
     },
     "./dialects/common/constants/*": {
       "types": "./dist/dialects/common/constants/*.d.ts",
@@ -48,8 +47,7 @@
       "import": "./dist/dialects/minimal/messages.js"
     },
     "./dialects/minimal/messages/*": {
-      "types": "./dist/dialects/minimal/messages/*.d.ts",
-      "import": "./dist/dialects/minimal/messages/*.js"
+      "types": "./dist/dialects/minimal/messages/*.d.ts"
     },
     "./dialects/minimal/constants/*": {
       "types": "./dist/dialects/minimal/constants/*.d.ts",
@@ -72,8 +70,7 @@
       "import": "./dist/dialects/ardupilotmega/messages.js"
     },
     "./dialects/ardupilotmega/messages/*": {
-      "types": "./dist/dialects/ardupilotmega/messages/*.d.ts",
-      "import": "./dist/dialects/ardupilotmega/messages/*.js"
+      "types": "./dist/dialects/ardupilotmega/messages/*.d.ts"
     },
     "./dialects/ardupilotmega/constants/*": {
       "types": "./dist/dialects/ardupilotmega/constants/*.d.ts",
@@ -96,8 +93,7 @@
       "import": "./dist/dialects/standard/messages.js"
     },
     "./dialects/standard/messages/*": {
-      "types": "./dist/dialects/standard/messages/*.d.ts",
-      "import": "./dist/dialects/standard/messages/*.js"
+      "types": "./dist/dialects/standard/messages/*.d.ts"
     },
     "./dialects/standard/constants/*": {
       "types": "./dist/dialects/standard/constants/*.d.ts",
@@ -126,13 +122,13 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json}\"",
     "clean": "rm -rf dist src/generated",
-    "gen:common": "bun src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/common.xml -o ./src/generated/dialects/common",
-    "gen:ardupilotmega": "bun src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/ardupilotmega.xml -o ./src/generated/dialects/ardupilotmega",
-    "gen:minimal": "bun src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/minimal.xml -o ./src/generated/dialects/minimal",
-    "gen:test": "bun src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/test.xml -o ./src/generated/dialects/test",
-    "gen:paparazzi": "bun src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/paparazzi.xml -o ./src/generated/dialects/paparazzi",
-    "gen:python_array_test": "bun src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/python_array_test.xml -o ./src/generated/dialects/python_array_test",
-    "gen:standard": "bun src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/standard.xml -o ./src/generated/dialects/standard",
+    "gen:common": "bun src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/6dac9679ded48f96a44aab4c56958755b1d8638a/message_definitions/v1.0/common.xml -o ./src/generated/dialects/common",
+    "gen:ardupilotmega": "bun src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/6dac9679ded48f96a44aab4c56958755b1d8638a/message_definitions/v1.0/ardupilotmega.xml -o ./src/generated/dialects/ardupilotmega",
+    "gen:minimal": "bun src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/6dac9679ded48f96a44aab4c56958755b1d8638a/message_definitions/v1.0/minimal.xml -o ./src/generated/dialects/minimal",
+    "gen:test": "bun src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/6dac9679ded48f96a44aab4c56958755b1d8638a/message_definitions/v1.0/test.xml -o ./src/generated/dialects/test",
+    "gen:paparazzi": "bun src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/6dac9679ded48f96a44aab4c56958755b1d8638a/message_definitions/v1.0/paparazzi.xml -o ./src/generated/dialects/paparazzi",
+    "gen:python_array_test": "bun src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/6dac9679ded48f96a44aab4c56958755b1d8638a/message_definitions/v1.0/python_array_test.xml -o ./src/generated/dialects/python_array_test",
+    "gen:standard": "bun src/cli.ts generate -i https://raw.githubusercontent.com/mavlink/mavlink/6dac9679ded48f96a44aab4c56958755b1d8638a/message_definitions/v1.0/standard.xml -o ./src/generated/dialects/standard",
     "gen:all": "npm run gen:common && npm run gen:ardupilotmega && npm run gen:minimal && npm run gen:standard",
     "release:patch": "npm version patch && git push origin master --tags && gh release create v$(node -p \"require('./package.json').version\") --title \"v$(node -p \"require('./package.json').version\")\" --generate-notes",
     "release:minor": "npm version minor && git push origin master --tags && gh release create v$(node -p \"require('./package.json').version\") --title \"v$(node -p \"require('./package.json').version\")\" --generate-notes",

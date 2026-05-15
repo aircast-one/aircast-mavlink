@@ -12,10 +12,10 @@ export interface BatchProcessorOptions {
 
 export class BatchProcessor {
   private generator: MAVLinkGenerator
-  private static readonly MAVLINK_DIALECTS_URL =
-    'https://api.github.com/repos/mavlink/mavlink/contents/message_definitions/v1.0'
-  private static readonly MAVLINK_RAW_BASE_URL =
-    'https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0'
+  // Pinned to mavlink/mavlink commit 6dac9679 (2026-05-14)
+  private static readonly MAVLINK_COMMIT = '6dac9679ded48f96a44aab4c56958755b1d8638a'
+  private static readonly MAVLINK_DIALECTS_URL = `https://api.github.com/repos/mavlink/mavlink/contents/message_definitions/v1.0?ref=${BatchProcessor.MAVLINK_COMMIT}`
+  private static readonly MAVLINK_RAW_BASE_URL = `https://raw.githubusercontent.com/mavlink/mavlink/${BatchProcessor.MAVLINK_COMMIT}/message_definitions/v1.0`
 
   constructor() {
     this.generator = new MAVLinkGenerator()

@@ -4,32 +4,31 @@ import terser from '@rollup/plugin-terser'
 import dts from 'rollup-plugin-dts'
 import { glob } from 'glob'
 
-// Get all dialect entry points and all message/constant modules
+// Dialect-level entry points + constants (tree-shakeable individual imports)
 const dialectFiles = glob.sync('src/generated/dialects/*/{index,parser,full,messages}.ts')
-const messageFiles = glob.sync('src/generated/dialects/*/messages/*.ts')
 const constantFiles = glob.sync('src/generated/dialects/*/constants/*.ts')
-const allFiles = [...dialectFiles, ...messageFiles, ...constantFiles]
+const jsFiles = [...dialectFiles, ...constantFiles]
 
-const dialectEntries = allFiles.reduce((acc, file) => {
-  // Convert src/generated/dialects/common/index.ts -> dialects/common/index
-  // Convert src/generated/dialects/common/parser.ts -> dialects/common/parser
-  // Convert src/generated/dialects/common/messages/heartbeat.ts -> dialects/common/messages/heartbeat
-  const relativePath = file.replace('src/generated/', '').replace('.ts', '')
-  acc[relativePath] = file
-  return acc
-}, {})
+// All files including individual messages (needed for .d.ts type resolution)
+const messageFiles = glob.sync('src/generated/dialects/*/messages/*.ts')
+const allFiles = [...jsFiles, ...messageFiles]
+
+function toEntries(files) {
+  return files.reduce((acc, file) => {
+    const relativePath = file.replace('src/generated/', '').replace('.ts', '')
+    acc[relativePath] = file
+    return acc
+  }, {})
+}
 
 export default [
-  // Tree-shakeable dialect modules
+  // JS bundle — messages inlined into dialect files, constants as individual files
   {
-    input: dialectEntries,
+    input: toEntries(jsFiles),
     output: {
       dir: 'dist',
       format: 'es',
       sourcemap: false,
-      entryFileNames: '[name].js',
-      preserveModules: true,
-      preserveModulesRoot: 'src/generated',
     },
     plugins: [
       resolve(),
@@ -53,9 +52,9 @@ export default [
     ],
   },
 
-  // Type declarations
+  // Type declarations — preserveModules so individual message types resolve
   {
-    input: dialectEntries,
+    input: toEntries(allFiles),
     output: {
       dir: 'dist',
       format: 'es',
