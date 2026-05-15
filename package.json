@@ -23,9 +23,6 @@
       "types": "./dist/dialects/common/messages.d.ts",
       "import": "./dist/dialects/common/messages.js"
     },
-    "./dialects/common/messages/*": {
-      "types": "./dist/dialects/common/messages/*.d.ts"
-    },
     "./dialects/common/constants/*": {
       "types": "./dist/dialects/common/constants/*.d.ts",
       "import": "./dist/dialects/common/constants/*.js"
@@ -45,9 +42,6 @@
     "./dialects/minimal/messages": {
       "types": "./dist/dialects/minimal/messages.d.ts",
       "import": "./dist/dialects/minimal/messages.js"
-    },
-    "./dialects/minimal/messages/*": {
-      "types": "./dist/dialects/minimal/messages/*.d.ts"
     },
     "./dialects/minimal/constants/*": {
       "types": "./dist/dialects/minimal/constants/*.d.ts",
@@ -69,9 +63,6 @@
       "types": "./dist/dialects/ardupilotmega/messages.d.ts",
       "import": "./dist/dialects/ardupilotmega/messages.js"
     },
-    "./dialects/ardupilotmega/messages/*": {
-      "types": "./dist/dialects/ardupilotmega/messages/*.d.ts"
-    },
     "./dialects/ardupilotmega/constants/*": {
       "types": "./dist/dialects/ardupilotmega/constants/*.d.ts",
       "import": "./dist/dialects/ardupilotmega/constants/*.js"
@@ -91,9 +82,6 @@
     "./dialects/standard/messages": {
       "types": "./dist/dialects/standard/messages.d.ts",
       "import": "./dist/dialects/standard/messages.js"
-    },
-    "./dialects/standard/messages/*": {
-      "types": "./dist/dialects/standard/messages/*.d.ts"
     },
     "./dialects/standard/constants/*": {
       "types": "./dist/dialects/standard/constants/*.d.ts",

@@ -7,11 +7,7 @@ import { glob } from 'glob'
 // Dialect-level entry points + constants (tree-shakeable individual imports)
 const dialectFiles = glob.sync('src/generated/dialects/*/{index,parser,full,messages}.ts')
 const constantFiles = glob.sync('src/generated/dialects/*/constants/*.ts')
-const jsFiles = [...dialectFiles, ...constantFiles]
-
-// All files including individual messages (needed for .d.ts type resolution)
-const messageFiles = glob.sync('src/generated/dialects/*/messages/*.ts')
-const allFiles = [...jsFiles, ...messageFiles]
+const entryFiles = [...dialectFiles, ...constantFiles]
 
 function toEntries(files) {
   return files.reduce((acc, file) => {
@@ -24,7 +20,7 @@ function toEntries(files) {
 export default [
   // JS bundle — messages inlined into dialect files, constants as individual files
   {
-    input: toEntries(jsFiles),
+    input: toEntries(entryFiles),
     output: {
       dir: 'dist',
       format: 'es',
@@ -52,15 +48,13 @@ export default [
     ],
   },
 
-  // Type declarations — preserveModules so individual message types resolve
+  // Type declarations — message types bundled into messages.d.ts
   {
-    input: toEntries(allFiles),
+    input: toEntries(entryFiles),
     output: {
       dir: 'dist',
       format: 'es',
-      entryFileNames: '[name].d.ts',
-      preserveModules: true,
-      preserveModulesRoot: 'src/generated',
+      sourcemap: false,
     },
     plugins: [dts()],
   },
