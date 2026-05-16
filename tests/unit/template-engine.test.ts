@@ -112,10 +112,10 @@ describe('TemplateEngine', () => {
       expect(result).not.toContain('export *')
       expect(result).not.toContain('export {')
       // Should contain import examples in comments
-      expect(result).toContain('// Parser')
+      expect(result).toContain('// Parser + Serializer')
       expect(result).toContain('// Constants')
       expect(result).toContain('// Typed messages')
-      expect(result).toContain('// Serializer')
+      expect(result).toContain('// Core types')
     })
 
     it('should include dialect name in documentation', () => {

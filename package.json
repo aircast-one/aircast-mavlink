@@ -4,86 +4,70 @@
   "description": "TypeScript type generator for MAVLink dialects",
   "type": "module",
   "exports": {
-    "./core/types": {
+    ".": {
       "types": "./dist/core/types.d.ts"
     },
-    "./dialects/common": {
-      "types": "./dist/dialects/common/index.d.ts",
-      "import": "./dist/dialects/common/index.js"
-    },
-    "./dialects/common/full": {
+    "./common": {
       "types": "./dist/dialects/common/full.d.ts",
       "import": "./dist/dialects/common/full.js"
     },
-    "./dialects/common/parser": {
+    "./common/parser": {
       "types": "./dist/dialects/common/parser.d.ts",
       "import": "./dist/dialects/common/parser.js"
     },
-    "./dialects/common/messages": {
+    "./common/messages": {
       "types": "./dist/dialects/common/messages.d.ts",
       "import": "./dist/dialects/common/messages.js"
     },
-    "./dialects/common/constants/*": {
+    "./common/constants/*": {
       "types": "./dist/dialects/common/constants/*.d.ts",
       "import": "./dist/dialects/common/constants/*.js"
     },
-    "./dialects/minimal": {
-      "types": "./dist/dialects/minimal/index.d.ts",
-      "import": "./dist/dialects/minimal/index.js"
-    },
-    "./dialects/minimal/full": {
+    "./minimal": {
       "types": "./dist/dialects/minimal/full.d.ts",
       "import": "./dist/dialects/minimal/full.js"
     },
-    "./dialects/minimal/parser": {
+    "./minimal/parser": {
       "types": "./dist/dialects/minimal/parser.d.ts",
       "import": "./dist/dialects/minimal/parser.js"
     },
-    "./dialects/minimal/messages": {
+    "./minimal/messages": {
       "types": "./dist/dialects/minimal/messages.d.ts",
       "import": "./dist/dialects/minimal/messages.js"
     },
-    "./dialects/minimal/constants/*": {
+    "./minimal/constants/*": {
       "types": "./dist/dialects/minimal/constants/*.d.ts",
       "import": "./dist/dialects/minimal/constants/*.js"
     },
-    "./dialects/ardupilotmega": {
-      "types": "./dist/dialects/ardupilotmega/index.d.ts",
-      "import": "./dist/dialects/ardupilotmega/index.js"
-    },
-    "./dialects/ardupilotmega/full": {
+    "./ardupilotmega": {
       "types": "./dist/dialects/ardupilotmega/full.d.ts",
       "import": "./dist/dialects/ardupilotmega/full.js"
     },
-    "./dialects/ardupilotmega/parser": {
+    "./ardupilotmega/parser": {
       "types": "./dist/dialects/ardupilotmega/parser.d.ts",
       "import": "./dist/dialects/ardupilotmega/parser.js"
     },
-    "./dialects/ardupilotmega/messages": {
+    "./ardupilotmega/messages": {
       "types": "./dist/dialects/ardupilotmega/messages.d.ts",
       "import": "./dist/dialects/ardupilotmega/messages.js"
     },
-    "./dialects/ardupilotmega/constants/*": {
+    "./ardupilotmega/constants/*": {
       "types": "./dist/dialects/ardupilotmega/constants/*.d.ts",
       "import": "./dist/dialects/ardupilotmega/constants/*.js"
     },
-    "./dialects/standard": {
-      "types": "./dist/dialects/standard/index.d.ts",
-      "import": "./dist/dialects/standard/index.js"
-    },
-    "./dialects/standard/full": {
+    "./standard": {
       "types": "./dist/dialects/standard/full.d.ts",
       "import": "./dist/dialects/standard/full.js"
     },
-    "./dialects/standard/parser": {
+    "./standard/parser": {
       "types": "./dist/dialects/standard/parser.d.ts",
       "import": "./dist/dialects/standard/parser.js"
     },
-    "./dialects/standard/messages": {
+    "./standard/messages": {
       "types": "./dist/dialects/standard/messages.d.ts",
       "import": "./dist/dialects/standard/messages.js"
     },
-    "./dialects/standard/constants/*": {
+    "./standard/constants/*": {
       "types": "./dist/dialects/standard/constants/*.d.ts",
       "import": "./dist/dialects/standard/constants/*.js"
     }
@@ -147,9 +131,6 @@
     "access": "public"
   },
   "devDependencies": {
-    "commander": "^11.1.0",
-    "handlebars": "^4.7.8",
-    "xml2js": "^0.6.2",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^11.1.6",
@@ -158,10 +139,12 @@
     "@types/xml2js": "^0.4.14",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
+    "commander": "^11.1.0",
     "eslint": "^8.55.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.3",
     "glob": "^10.3.10",
+    "handlebars": "^4.7.8",
     "jest": "^29.7.0",
     "lefthook": "^2.0.13",
     "node-mavlink": "^2.1.0",
@@ -170,9 +153,13 @@
     "rollup-plugin-dts": "^6.1.0",
     "ts-jest": "^29.4.0",
     "tslib": "^2.6.2",
-    "typescript": "5.3.3"
+    "typescript": "5.3.3",
+    "xml2js": "^0.6.2"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@aircast-one/mavlink": "^3.0.0"
   }
 }

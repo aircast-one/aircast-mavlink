@@ -26,8 +26,8 @@ Requires Node.js >= 18.0.0 (uses native `fetch` for code generation).
 ### Parsing
 
 ```typescript
-import { ArdupilotmegaParser } from '@aircast-one/mavlink/dialects/ardupilotmega/full'
-import type { ArdupilotmegaMessage } from '@aircast-one/mavlink/dialects/ardupilotmega/messages'
+import { ArdupilotmegaParser } from '@aircast-one/mavlink/ardupilotmega'
+import type { ArdupilotmegaMessage } from '@aircast-one/mavlink/ardupilotmega/messages'
 
 const parser = new ArdupilotmegaParser()
 
@@ -60,7 +60,7 @@ for (const msg of messages) {
 Each message has a generated `serialize` function with a fully typed payload:
 
 ```typescript
-import { serializeCommandLong } from '@aircast-one/mavlink/dialects/ardupilotmega/messages'
+import { serializeCommandLong } from '@aircast-one/mavlink/ardupilotmega/messages'
 
 const bytes = serializeCommandLong(
   {
@@ -85,7 +85,7 @@ const bytes = serializeCommandLong(
 For dynamic message names, use the dialect serializer:
 
 ```typescript
-import { ArdupilotmegaSerializer } from '@aircast-one/mavlink/dialects/ardupilotmega/full'
+import { ArdupilotmegaSerializer } from '@aircast-one/mavlink/ardupilotmega'
 
 const serializer = new ArdupilotmegaSerializer()
 
@@ -108,9 +108,9 @@ const bytes = serializer.serialize(
 Register only the messages you send — skip the full dialect bundle:
 
 ```typescript
-import { ArdupilotmegaSerializer } from '@aircast-one/mavlink/dialects/ardupilotmega/parser'
-import { CommandLongDefinition } from '@aircast-one/mavlink/dialects/ardupilotmega/messages/command-long'
-import { HeartbeatDefinition } from '@aircast-one/mavlink/dialects/ardupilotmega/messages/heartbeat'
+import { ArdupilotmegaSerializer } from '@aircast-one/mavlink/ardupilotmega/parser'
+import { CommandLongDefinition } from '@aircast-one/mavlink/ardupilotmega/messages/command-long'
+import { HeartbeatDefinition } from '@aircast-one/mavlink/ardupilotmega/messages/heartbeat'
 
 const serializer = new ArdupilotmegaSerializer([CommandLongDefinition, HeartbeatDefinition])
 ```
@@ -123,17 +123,17 @@ Constants are tree-shakeable — import only what you need:
 import {
   MAV_CMD_COMPONENT_ARM_DISARM,
   MAV_CMD_NAV_TAKEOFF,
-} from '@aircast-one/mavlink/dialects/ardupilotmega/constants/mav-cmd'
+} from '@aircast-one/mavlink/ardupilotmega/constants/mav-cmd'
 
-import type { MAV_CMD } from '@aircast-one/mavlink/dialects/ardupilotmega/constants/mav-cmd'
+import type { MAV_CMD } from '@aircast-one/mavlink/ardupilotmega/constants/mav-cmd'
 ```
 
 ### Web Worker
 
 ```typescript
 // worker.ts
-import { ArdupilotmegaParser } from '@aircast-one/mavlink/dialects/ardupilotmega/full'
-import type { ArdupilotmegaMessage } from '@aircast-one/mavlink/dialects/ardupilotmega/messages'
+import { ArdupilotmegaParser } from '@aircast-one/mavlink/ardupilotmega'
+import type { ArdupilotmegaMessage } from '@aircast-one/mavlink/ardupilotmega/messages'
 
 const parser = new ArdupilotmegaParser()
 
@@ -155,7 +155,7 @@ self.onmessage = (event) => {
 | Minimal       | `MinimalParser`       | `MinimalSerializer`       | `MinimalMessage`       |
 | Standard      | `StandardParser`      | `StandardSerializer`      | `StandardMessage`      |
 
-All are imported from `@aircast-one/mavlink/dialects/<dialect>/full`.
+All are imported from `@aircast-one/mavlink/<dialect>/full`.
 
 ## API Reference
 
@@ -204,7 +204,7 @@ function serializeCommandLong(payload: MessageCommandLong, options: SerializeOpt
 // ... one per message in the dialect
 ```
 
-Import from `@aircast-one/mavlink/dialects/<dialect>/messages`.
+Import from `@aircast-one/mavlink/<dialect>/messages`.
 
 ### Generated Types
 
@@ -255,13 +255,15 @@ const messages = parser.parseBytes(data) as ArdupilotmegaMessage[]
 ## Import Patterns
 
 ```
-@aircast-one/mavlink/
-├── core/types                           # ParsedMAVLinkMessage, SerializeOptions, etc.
-├── dialects/<dialect>/full              # Parser + Serializer (all messages registered)
-├── dialects/<dialect>/parser            # Parser + Serializer classes (register manually)
-├── dialects/<dialect>/messages          # All message types + serialize functions + unions
-└── dialects/<dialect>/constants/<enum>  # Individual enum constants (tree-shakeable)
+@aircast-one/mavlink
+├── (root)                        # import type { ParsedMAVLinkMessage } from '@aircast-one/mavlink'
+├── <dialect>                     # Parser + Serializer (all messages registered)
+├── <dialect>/parser              # Parser + Serializer (register manually)
+├── <dialect>/messages            # Message types + serialize functions + unions
+└── <dialect>/constants/<enum>    # Individual enum constants (tree-shakeable)
 ```
+
+Dialects: `ardupilotmega`, `common`, `minimal`, `standard`
 
 ## Code Generation
 
