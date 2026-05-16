@@ -2,6 +2,7 @@ import { promises as fs } from 'fs'
 import { join } from 'path'
 import { MAVLinkGenerator } from './generator'
 import { GenerationOptions } from '../types'
+import pkg from '../../package.json'
 
 export interface BatchProcessorOptions {
   outputDir: string
@@ -12,8 +13,8 @@ export interface BatchProcessorOptions {
 
 export class BatchProcessor {
   private generator: MAVLinkGenerator
-  // Pinned to mavlink/mavlink commit 6dac9679 (2026-05-14)
-  private static readonly MAVLINK_COMMIT = '6dac9679ded48f96a44aab4c56958755b1d8638a'
+  private static readonly MAVLINK_COMMIT = (pkg as unknown as { mavlinkCommit: string })
+    .mavlinkCommit
   private static readonly MAVLINK_DIALECTS_URL = `https://api.github.com/repos/mavlink/mavlink/contents/message_definitions/v1.0?ref=${BatchProcessor.MAVLINK_COMMIT}`
   private static readonly MAVLINK_RAW_BASE_URL = `https://raw.githubusercontent.com/mavlink/mavlink/${BatchProcessor.MAVLINK_COMMIT}/message_definitions/v1.0`
 

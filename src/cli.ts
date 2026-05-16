@@ -4,10 +4,8 @@ import { Command } from 'commander'
 import { MAVLinkGenerator } from './generator/generator'
 import { BatchProcessor } from './generator/batch-processor'
 import { GenerationOptions } from './types'
-import { existsSync, readFileSync } from 'fs'
-import { resolve } from 'path'
-
-const pkg = JSON.parse(readFileSync(resolve(__dirname, '..', 'package.json'), 'utf-8'))
+import { existsSync } from 'fs'
+import pkg from '../package.json'
 
 const program = new Command()
 
