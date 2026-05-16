@@ -1,5 +1,5 @@
 {
-  "name": "@aircast-4g/mavlink",
+  "name": "@aircast-one/mavlink",
   "version": "2.1.0",
   "description": "TypeScript type generator for MAVLink dialects",
   "type": "module",
@@ -99,7 +99,7 @@
   ],
   "scripts": {
     "build": "npm run clean && npm run generate && npm run build:bundle",
-    "build:bundle": "rollup -c",
+    "build:bundle": "rollup -c && tsc --declaration --emitDeclarationOnly --outDir dist --rootDir src --target ES2020 --moduleResolution node --esModuleInterop --resolveJsonModule --skipLibCheck src/core/types.ts src/core/crc.ts src/core/codec.ts src/core/frame.ts src/core/parser.ts src/core/stream-buffer.ts src/core/message-registry.ts src/core/message-serializer.ts src/core/index.ts",
     "generate": "npm run gen:all",
     "start": "node dist/cli.js",
     "dev": "bun src/cli.ts",

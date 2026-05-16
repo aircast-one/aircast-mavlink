@@ -8,11 +8,11 @@ Replace monolithic dialect bundles with tree-shakeable individual message module
 
 ## Expected Size Improvements
 
-| Usage Pattern | Current | After |
-|--------------|---------|-------|
-| HEARTBEAT only | 206KB | ~8KB |
-| 10 messages | 206KB | ~40KB |
-| All messages | 206KB | ~206KB |
+| Usage Pattern  | Current | After  |
+| -------------- | ------- | ------ |
+| HEARTBEAT only | 206KB   | ~8KB   |
+| 10 messages    | 206KB   | ~40KB  |
+| All messages   | 206KB   | ~206KB |
 
 ## New Directory Structure
 
@@ -32,14 +32,14 @@ src/generated/dialects/common/
 
 ```typescript
 // Full dialect (imports everything)
-import { CommonParser } from '@aircast-4g/mavlink/dialects/common';
+import { CommonParser } from '@aircast-one/mavlink/dialects/common'
 
 // Tree-shakeable (only specific messages)
-import { CommonParser } from '@aircast-4g/mavlink/dialects/common/parser';
-import '@aircast-4g/mavlink/dialects/common/messages/heartbeat';
-import '@aircast-4g/mavlink/dialects/common/messages/gps-raw-int';
+import { CommonParser } from '@aircast-one/mavlink/dialects/common/parser'
+import '@aircast-one/mavlink/dialects/common/messages/heartbeat'
+import '@aircast-one/mavlink/dialects/common/messages/gps-raw-int'
 
-const parser = new CommonParser();
+const parser = new CommonParser()
 // Parser only knows HEARTBEAT and GPS_RAW_INT
 ```
 
@@ -82,11 +82,11 @@ Add new `message-module` template:
 
 ```typescript
 // messages/heartbeat.ts (generated)
-import { registerMessage } from '../parser';
-import type { MessageDefinition } from '../../../../core';
+import { registerMessage } from '../parser'
+import type { MessageDefinition } from '../../../../core'
 
-export const HEARTBEAT_ID = 0;
-export const HEARTBEAT_CRC_EXTRA = 50;
+export const HEARTBEAT_ID = 0
+export const HEARTBEAT_CRC_EXTRA = 50
 
 export const HeartbeatDefinition: MessageDefinition = {
   id: 0,
@@ -98,24 +98,24 @@ export const HeartbeatDefinition: MessageDefinition = {
     { name: 'base_mode', type: 'uint8_t' },
     { name: 'system_status', type: 'uint8_t' },
     { name: 'mavlink_version', type: 'uint8_t' },
-  ]
-};
+  ],
+}
 
 export interface MessageHeartbeat {
-  custom_mode: number;
-  type: number;
-  autopilot: number;
-  base_mode: number;
-  system_status: number;
-  mavlink_version: number;
+  custom_mode: number
+  type: number
+  autopilot: number
+  base_mode: number
+  system_status: number
+  mavlink_version: number
 }
 
 export function isHeartbeat(msg: { message_name: string }): boolean {
-  return msg.message_name === 'HEARTBEAT';
+  return msg.message_name === 'HEARTBEAT'
 }
 
 // Auto-register on import
-registerMessage(HEARTBEAT_ID, HeartbeatDefinition, HEARTBEAT_CRC_EXTRA);
+registerMessage(HEARTBEAT_ID, HeartbeatDefinition, HEARTBEAT_CRC_EXTRA)
 ```
 
 ### 3. Index Template (`src/generator/template-engine.ts`)
@@ -124,18 +124,18 @@ Update to import all messages:
 
 ```typescript
 // index.ts (generated)
-export * from './types';
-export * from './enums';
-export * from './parser';
+export * from './types'
+export * from './enums'
+export * from './parser'
 
 // Import all messages to register them
-import './messages/heartbeat';
-import './messages/sys-status';
+import './messages/heartbeat'
+import './messages/sys-status'
 // ... all messages
 
 // Re-export types and guards
-export { MessageHeartbeat, isHeartbeat } from './messages/heartbeat';
-export { MessageSysStatus, isSysStatus } from './messages/sys-status';
+export { MessageHeartbeat, isHeartbeat } from './messages/heartbeat'
+export { MessageSysStatus, isSysStatus } from './messages/sys-status'
 // ...
 ```
 
@@ -204,11 +204,11 @@ Add granular exports:
 ```typescript
 // Convert UPPER_SNAKE_CASE to kebab-case for filenames
 function kebabCase(str: string): string {
-  return str.toLowerCase().replace(/_/g, '-');
+  return str.toLowerCase().replace(/_/g, '-')
 }
 
 // Convert to CONSTANT_NAME
 function constantCase(str: string): string {
-  return str.toUpperCase();
+  return str.toUpperCase()
 }
 ```

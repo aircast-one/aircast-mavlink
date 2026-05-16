@@ -133,16 +133,16 @@ export interface Message{{ name }} {
       Handlebars.compile(`// {{ dialectName }} dialect
 //
 // Parser (with all messages pre-registered):
-//   import { {{capitalize dialectName}}Parser } from '@aircast-4g/mavlink/dialects/{{ dialectName }}/full'
+//   import { {{capitalize dialectName}}Parser } from '@aircast-one/mavlink/dialects/{{ dialectName }}/full'
 //
 // Serializer:
-//   import { {{capitalize dialectName}}Serializer } from '@aircast-4g/mavlink/dialects/{{ dialectName }}/full'
+//   import { {{capitalize dialectName}}Serializer } from '@aircast-one/mavlink/dialects/{{ dialectName }}/full'
 //
 // Typed messages:
-//   import type { {{capitalize dialectName}}Message } from '@aircast-4g/mavlink/dialects/{{ dialectName }}/messages'
+//   import type { {{capitalize dialectName}}Message } from '@aircast-one/mavlink/dialects/{{ dialectName }}/messages'
 //
 // Constants:
-//   import { MAV_TYPE_QUADROTOR } from '@aircast-4g/mavlink/dialects/{{ dialectName }}/constants/mav-type'
+//   import { MAV_TYPE_QUADROTOR } from '@aircast-one/mavlink/dialects/{{ dialectName }}/constants/mav-type'
 `)
     )
 
