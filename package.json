@@ -1,6 +1,6 @@
 {
   "name": "@aircast-one/mavlink",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "TypeScript type generator for MAVLink dialects",
   "type": "module",
   "exports": {
