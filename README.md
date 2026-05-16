@@ -1,6 +1,17 @@
-# Aircast MAVLink
+# @aircast-4g/mavlink
 
-TypeScript MAVLink library with code generation from XML dialects, real-time parsing, and serialization. Designed for browser and Node.js with tree-shakeable imports.
+Type-safe MAVLink library for TypeScript. Parses and serializes MAVLink v1/v2 messages with full type narrowing — no manual casts needed. Works in browsers, Web Workers, and Node.js.
+
+Generated from official [MAVLink XML definitions](https://github.com/mavlink/mavlink/tree/master/message_definitions/v1.0).
+
+## Features
+
+- **Type-safe parsing** — discriminated unions narrow `payload` when you switch on `message_name`
+- **Type-safe serialization** — per-message `serialize` functions with typed payloads
+- **Tree-shakeable** — import only the constants and messages you need
+- **MAVLink v1 & v2** — automatic protocol detection, CRC validation, extension field handling
+- **Browser-first** — designed for Web Workers, no Node.js dependencies at runtime
+- **4 built-in dialects** — Common, ArduPilotMega, Minimal, Standard
 
 ## Installation
 
@@ -8,36 +19,79 @@ TypeScript MAVLink library with code generation from XML dialects, real-time par
 npm install @aircast-4g/mavlink
 ```
 
+Requires Node.js >= 18.0.0 (uses native `fetch` for code generation).
+
 ## Quick Start
 
-### Parsing MAVLink messages
+### Parsing
 
 ```typescript
-import { CommonParser } from '@aircast-4g/mavlink/dialects/common/full'
+import { ArdupilotmegaParser } from '@aircast-4g/mavlink/dialects/ardupilotmega/full'
+import type { ArdupilotmegaMessage } from '@aircast-4g/mavlink/dialects/ardupilotmega/messages'
 
-const parser = new CommonParser()
+const parser = new ArdupilotmegaParser()
 
-// Parse raw bytes (handles buffering, frame sync, v1/v2 detection)
-const messages = parser.parseBytes(rawBytes)
+// parseBytes handles buffering, frame sync, CRC validation
+const messages = parser.parseBytes(rawBytes) as ArdupilotmegaMessage[]
 
-messages.forEach((msg) => {
-  console.log(msg.message_name, msg.payload)
-})
+for (const msg of messages) {
+  switch (msg.message_name) {
+    case 'HEARTBEAT':
+      // payload is auto-narrowed to MessageHeartbeat
+      console.log('Type:', msg.payload.type)
+      console.log('Autopilot:', msg.payload.autopilot)
+      break
+
+    case 'GPS_RAW_INT':
+      // payload is auto-narrowed to MessageGpsRawInt
+      console.log('Lat:', msg.payload.lat / 1e7)
+      console.log('Lon:', msg.payload.lon / 1e7)
+      break
+
+    case 'ATTITUDE':
+      console.log('Roll:', msg.payload.roll)
+      break
+  }
+}
 ```
 
-### Serializing MAVLink messages
+### Serializing (type-safe per-message functions)
+
+Each message has a generated `serialize` function with a fully typed payload:
 
 ```typescript
-import { CommonSerializer } from '@aircast-4g/mavlink/dialects/common/full'
+import { serializeCommandLong } from '@aircast-4g/mavlink/dialects/ardupilotmega/messages'
 
-const serializer = new CommonSerializer()
+const bytes = serializeCommandLong(
+  {
+    target_system: 1,
+    target_component: 1,
+    command: 400, // MAV_CMD_COMPONENT_ARM_DISARM
+    confirmation: 0,
+    param1: 1, // arm
+    param2: 0,
+    param3: 0,
+    param4: 0,
+    param5: 0,
+    param6: 0,
+    param7: 0,
+  },
+  { system_id: 255, component_id: 190, sequence: 0 }
+)
+```
 
-const bytes = serializer.serialize({
-  message_name: 'HEARTBEAT',
-  system_id: 255,
-  component_id: 190,
-  sequence: 0,
-  payload: {
+### Serializing (generic serializer)
+
+For dynamic message names, use the dialect serializer:
+
+```typescript
+import { ArdupilotmegaSerializer } from '@aircast-4g/mavlink/dialects/ardupilotmega/full'
+
+const serializer = new ArdupilotmegaSerializer()
+
+const bytes = serializer.serialize(
+  'HEARTBEAT',
+  {
     type: 6,
     autopilot: 8,
     base_mode: 81,
@@ -45,98 +99,135 @@ const bytes = serializer.serialize({
     system_status: 4,
     mavlink_version: 3,
   },
-})
+  { system_id: 255, component_id: 190, sequence: 0 }
+)
 ```
 
-### Web Worker integration
+### Selective serializer (tree-shakeable)
+
+Register only the messages you send — skip the full dialect bundle:
+
+```typescript
+import { ArdupilotmegaSerializer } from '@aircast-4g/mavlink/dialects/ardupilotmega/parser'
+import { CommandLongDefinition } from '@aircast-4g/mavlink/dialects/ardupilotmega/messages/command-long'
+import { HeartbeatDefinition } from '@aircast-4g/mavlink/dialects/ardupilotmega/messages/heartbeat'
+
+const serializer = new ArdupilotmegaSerializer([CommandLongDefinition, HeartbeatDefinition])
+```
+
+### Constants
+
+Constants are tree-shakeable — import only what you need:
+
+```typescript
+import {
+  MAV_CMD_COMPONENT_ARM_DISARM,
+  MAV_CMD_NAV_TAKEOFF,
+} from '@aircast-4g/mavlink/dialects/ardupilotmega/constants/mav-cmd'
+
+import type { MAV_CMD } from '@aircast-4g/mavlink/dialects/ardupilotmega/constants/mav-cmd'
+```
+
+### Web Worker
 
 ```typescript
 // worker.ts
 import { ArdupilotmegaParser } from '@aircast-4g/mavlink/dialects/ardupilotmega/full'
+import type { ArdupilotmegaMessage } from '@aircast-4g/mavlink/dialects/ardupilotmega/messages'
 
 const parser = new ArdupilotmegaParser()
 
 self.onmessage = (event) => {
-  const messages = parser.parseBytes(event.data)
-  self.postMessage({ type: 'MESSAGES', messages })
+  const messages = parser.parseBytes(event.data) as ArdupilotmegaMessage[]
+
+  for (const msg of messages) {
+    self.postMessage(msg)
+  }
 }
-```
-
-### Using constants (tree-shakeable)
-
-```typescript
-import { MAV_CMD_NAV_WAYPOINT } from '@aircast-4g/mavlink/dialects/ardupilotmega/constants/mav-cmd'
-import type { MAV_CMD } from '@aircast-4g/mavlink/dialects/ardupilotmega/constants/mav-cmd'
-```
-
-### Using message types
-
-```typescript
-import type { ParsedMAVLinkMessage } from '@aircast-4g/mavlink/core/types'
-import type { MessageHeartbeat } from '@aircast-4g/mavlink/dialects/common/messages/heartbeat'
 ```
 
 ## Available Dialects
 
-| Dialect   | Parser                                            | Import                                            |
-| --------- | ------------------------------------------------- | ------------------------------------------------- |
-| Common    | `CommonParser` / `CommonSerializer`               | `@aircast-4g/mavlink/dialects/common/full`        |
-| ArduPilot | `ArdupilotmegaParser` / `ArdupilotmegaSerializer` | `@aircast-4g/mavlink/dialects/ardupilotmega/full` |
-| Minimal   | `MinimalParser` / `MinimalSerializer`             | `@aircast-4g/mavlink/dialects/minimal/full`       |
-| Standard  | `StandardParser` / `StandardSerializer`           | `@aircast-4g/mavlink/dialects/standard/full`      |
+| Dialect       | Parser                | Serializer                | Messages               |
+| ------------- | --------------------- | ------------------------- | ---------------------- |
+| Common        | `CommonParser`        | `CommonSerializer`        | `CommonMessage`        |
+| ArduPilotMega | `ArdupilotmegaParser` | `ArdupilotmegaSerializer` | `ArdupilotmegaMessage` |
+| Minimal       | `MinimalParser`       | `MinimalSerializer`       | `MinimalMessage`       |
+| Standard      | `StandardParser`      | `StandardSerializer`      | `StandardMessage`      |
+
+All are imported from `@aircast-4g/mavlink/dialects/<dialect>/full`.
 
 ## API Reference
 
-### DialectParser
-
-Base class for all dialect parsers (e.g., `CommonParser`, `ArdupilotmegaParser`).
+### Parser
 
 ```typescript
 class DialectParser {
-  // Parse raw bytes into messages (handles buffering internally)
   parseBytes(data: Uint8Array): ParsedMAVLinkMessage[]
-
-  // Decode a single frame
   decode(frame: MAVLinkFrame): ParsedMAVLinkMessage
-
-  // Serialize a message to MAVLink bytes
-  serializeMessage(message: {
-    message_name: string
-    payload: Record<string, unknown>
-    system_id?: number
-    component_id?: number
-    sequence?: number
-  }): Uint8Array
-
-  // Clear internal buffer
   resetBuffer(): void
-
-  // Registry queries
-  supportsMessage(messageId: number): boolean
-  supportsMessageName(messageName: string): boolean
-  getSupportedMessageIds(): number[]
-  getSupportedMessageNames(): string[]
   getDialectName(): string
 }
 ```
 
-### DialectSerializer
+`parseBytes` handles buffering, frame synchronization, protocol detection (v1/v2), CRC validation, and payload decoding. Feed it raw bytes from any transport — WebSocket, WebRTC data channel, TCP, serial — and get back fully decoded messages.
 
-Convenience wrapper around the parser's serialization methods.
+### Serializer
 
 ```typescript
 class DialectSerializer {
-  serialize(message: { message_name: string; payload: Record<string, unknown> }): Uint8Array
-  completeMessage(message: {
-    message_name: string
-    payload: Record<string, unknown>
-  }): Record<string, unknown>
-  getSupportedMessages(): string[]
-  supportsMessage(messageName: string): boolean
+  constructor(definitions?: MessageDefinition[])
+  serialize(
+    messageName: string,
+    payload: Record<string, unknown>,
+    options: SerializeOptions
+  ): Uint8Array
+}
+
+interface SerializeOptions {
+  system_id: number
+  component_id: number
+  sequence: number
+  protocol_version?: 1 | 2 // auto-detected from message ID if omitted
 }
 ```
 
-### ParsedMAVLinkMessage
+Pass specific `MessageDefinition` arrays to the constructor for selective registration (smaller bundles). Omit to use all definitions registered by the `/full` import.
+
+### Per-Message Serialize Functions
+
+Each message module exports a type-safe serialize function:
+
+```typescript
+function serializeHeartbeat(payload: MessageHeartbeat, options: SerializeOptions): Uint8Array
+function serializeCommandLong(payload: MessageCommandLong, options: SerializeOptions): Uint8Array
+// ... one per message in the dialect
+```
+
+Import from `@aircast-4g/mavlink/dialects/<dialect>/messages`.
+
+### Generated Types
+
+```typescript
+// Discriminated union — TypeScript narrows payload via message_name
+type ArdupilotmegaMessage =
+  | { message_name: 'HEARTBEAT'; payload: MessageHeartbeat; /* ...base fields */ }
+  | { message_name: 'GPS_RAW_INT'; payload: MessageGpsRawInt; /* ...base fields */ }
+  | { message_name: 'ATTITUDE'; payload: MessageAttitude; /* ...base fields */ }
+  // ... all messages in dialect
+
+// Message name literal union — for autocomplete and exhaustive checks
+type ArdupilotmegaMessageName = 'HEARTBEAT' | 'GPS_RAW_INT' | 'ATTITUDE' | ...;
+
+// Lookup map — get payload type from message name
+interface MessageTypeMap {
+  HEARTBEAT: MessageHeartbeat;
+  GPS_RAW_INT: MessageGpsRawInt;
+  // ...
+}
+```
+
+### ParsedMAVLinkMessage (base type)
 
 ```typescript
 interface ParsedMAVLinkMessage {
@@ -155,41 +246,56 @@ interface ParsedMAVLinkMessage {
 }
 ```
 
+Cast to the dialect's message type for full type narrowing:
+
+```typescript
+const messages = parser.parseBytes(data) as ArdupilotmegaMessage[]
+```
+
 ## Import Patterns
 
 ```
 @aircast-4g/mavlink/
-├── core/types                          # ParsedMAVLinkMessage type
-├── dialects/<dialect>/full             # Parser + Serializer (all messages registered)
-├── dialects/<dialect>/parser           # Parser only (register messages manually)
-├── dialects/<dialect>/messages/<msg>   # Individual message definitions + types
-├── dialects/<dialect>/constants/<enum> # Individual enum constants
-└── dialects/<dialect>/messages         # All message type re-exports
+├── core/types                           # ParsedMAVLinkMessage, SerializeOptions, etc.
+├── dialects/<dialect>/full              # Parser + Serializer (all messages registered)
+├── dialects/<dialect>/parser            # Parser + Serializer classes (register manually)
+├── dialects/<dialect>/messages          # All message types + serialize functions + unions
+└── dialects/<dialect>/constants/<enum>  # Individual enum constants (tree-shakeable)
 ```
 
-## Code Generation CLI
+## Code Generation
 
-Generate TypeScript types from MAVLink XML dialect definitions.
+Generate TypeScript types from any MAVLink XML dialect:
 
 ```bash
-# Generate single dialect
-npx aircast-mavlink generate -i common.xml -o ./types
+# From URL
+bun src/cli.ts generate \
+  -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/common.xml \
+  -o ./src/generated/dialects/common
 
-# Generate from URL
-npx aircast-mavlink generate -i https://raw.githubusercontent.com/mavlink/mavlink/master/message_definitions/v1.0/common.xml -o ./types
+# From local file
+bun src/cli.ts generate -i ./my-dialect.xml -o ./types
 
 # Batch generate multiple dialects
-npx aircast-mavlink batch -d "common,minimal,ardupilotmega" -o ./mavlink-types
+bun src/cli.ts batch -d "common,minimal,ardupilotmega" -o ./mavlink-types
 
-# List available dialects
-npx aircast-mavlink list
+# List available upstream dialects
+bun src/cli.ts list
 ```
 
 ### CLI Options
 
-**generate**: `-i <path>` input, `-o <path>` output, `-n <name>` dialect name, `-f single|separate` format, `--no-enums`, `--no-type-guards`
-
-**batch**: `-o <path>` output, `-d <dialects>` comma-separated, `-f single|separate` format, `--package` generate package.json
+| Command    | Flag               | Description                                   |
+| ---------- | ------------------ | --------------------------------------------- |
+| `generate` | `-i <path>`        | Input XML file or URL (required)              |
+|            | `-o <path>`        | Output directory (default: `./types`)         |
+|            | `-n <name>`        | Dialect name (auto-detected from filename)    |
+|            | `-f <format>`      | `single` or `separate` (default: `separate`)  |
+|            | `--no-enums`       | Skip enum generation                          |
+|            | `--no-type-guards` | Skip type guard generation                    |
+| `batch`    | `-o <path>`        | Output directory (default: `./mavlink-types`) |
+|            | `-d <dialects>`    | Comma-separated dialect names                 |
+|            | `--package`        | Generate `package.json` and `tsconfig.json`   |
 
 ### Programmatic Usage
 
@@ -197,17 +303,68 @@ npx aircast-mavlink list
 import { generateTypesFromXML } from '@aircast-4g/mavlink'
 
 const files = await generateTypesFromXML(xmlContent, {
-  dialectName: 'common',
+  dialectName: 'my-dialect',
   outputFormat: 'separate',
   includeEnums: true,
   includeTypeGuards: true,
 })
+// files: { 'types.ts': '...', 'parser.ts': '...', ... }
+```
+
+## Architecture
+
+```
+XML Dialect Definition
+        │
+        ▼
+   Code Generator ──► Per-message modules (definition + interface + serialize fn)
+        │              Per-constant modules (type union + const values)
+        │              Parser class (extends DialectParser)
+        │              Serializer class (standalone, lazy registration)
+        │              Discriminated union type
+        │              Message name literal union
+        ▼
+  Runtime (browser/Node.js)
+        │
+   ┌────┴────┐
+   │ Parser  │  Raw bytes → ParsedMAVLinkMessage[]
+   │         │  - StreamBuffer handles partial frames
+   │         │  - Frame parser detects v1/v2 magic bytes
+   │         │  - CRC validation with computed CRC_EXTRA
+   │         │  - Payload decoding with wire-order field sorting
+   └─────────┘
+   ┌─────────┐
+   │Serializer│  Message name + payload + options → Uint8Array
+   │         │  - Encodes payload with field defaults
+   │         │  - Creates v1/v2 frame with CRC
+   │         │  - Protocol version auto-detected from message ID
+   └─────────┘
 ```
 
 ## Limitations
 
-- **MAVLink v2 signing**: The parser reads v2 signatures but does not validate them. The serializer does not create signed frames. Use transport-layer encryption (DTLS/TLS) for security.
-- **CRC_EXTRA**: Computed from XML definitions at generation time. Custom dialects must be generated with the CLI to get correct CRC values.
+- **MAVLink v2 signing** — the parser reads v2 signatures but does not validate them. The serializer does not create signed frames. Use transport-layer encryption (DTLS/TLS) for security.
+- **CRC_EXTRA** — computed from XML definitions at generation time. Custom dialects must be generated with the CLI to get correct CRC values.
+- **Pinned MAVLink version** — built-in dialects are generated from a pinned upstream commit (`mavlinkCommit` in package.json). Update the commit SHA and regenerate to pick up new messages.
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Generate dialects from MAVLink XML
+npm run generate
+
+# Build the package
+npm run build
+
+# Run tests
+npm test
+
+# Type-check
+npm run typecheck
+```
 
 ## License
 
