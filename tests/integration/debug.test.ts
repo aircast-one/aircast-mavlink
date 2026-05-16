@@ -22,7 +22,11 @@ describe('Debug Tests', () => {
 
     console.log('Original message:', message)
 
-    const bytes = serializer.serialize(message)
+    const bytes = serializer.serialize('MEMINFO', message.payload, {
+      system_id: message.system_id,
+      component_id: message.component_id,
+      sequence: message.sequence,
+    })
     console.log(
       'Serialized bytes:',
       Array.from(bytes)

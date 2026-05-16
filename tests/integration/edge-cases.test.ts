@@ -50,12 +50,9 @@ describe('Edge Cases and Error Conditions', () => {
     })
 
     test('should skip invalid data and find valid messages', () => {
-      const validHeartbeat = serializer.serialize({
-        message_name: 'HEARTBEAT',
-        system_id: 1,
-        component_id: 1,
-        sequence: 0,
-        payload: {
+      const validHeartbeat = serializer.serialize(
+        'HEARTBEAT',
+        {
           type: 1,
           autopilot: 3,
           base_mode: 0,
@@ -63,7 +60,8 @@ describe('Edge Cases and Error Conditions', () => {
           system_status: 4,
           mavlink_version: 3,
         },
-      })
+        { system_id: 1, component_id: 1, sequence: 0 }
+      )
 
       const mixedData = new Uint8Array([
         0xff,
@@ -82,12 +80,9 @@ describe('Edge Cases and Error Conditions', () => {
     })
 
     test('should handle truncated messages', () => {
-      const validMessage = serializer.serialize({
-        message_name: 'HEARTBEAT',
-        system_id: 1,
-        component_id: 1,
-        sequence: 0,
-        payload: {
+      const validMessage = serializer.serialize(
+        'HEARTBEAT',
+        {
           type: 1,
           autopilot: 3,
           base_mode: 0,
@@ -95,7 +90,8 @@ describe('Edge Cases and Error Conditions', () => {
           system_status: 4,
           mavlink_version: 3,
         },
-      })
+        { system_id: 1, component_id: 1, sequence: 0 }
+      )
 
       // Truncate the message
       const truncated = validMessage.slice(0, validMessage.length - 5)
@@ -105,12 +101,9 @@ describe('Edge Cases and Error Conditions', () => {
     })
 
     test('should handle messages with invalid checksums', () => {
-      const validMessage = serializer.serialize({
-        message_name: 'HEARTBEAT',
-        system_id: 1,
-        component_id: 1,
-        sequence: 0,
-        payload: {
+      const validMessage = serializer.serialize(
+        'HEARTBEAT',
+        {
           type: 1,
           autopilot: 3,
           base_mode: 0,
@@ -118,7 +111,8 @@ describe('Edge Cases and Error Conditions', () => {
           system_status: 4,
           mavlink_version: 3,
         },
-      })
+        { system_id: 1, component_id: 1, sequence: 0 }
+      )
 
       // Corrupt the checksum
       const corrupted = new Uint8Array(validMessage)
@@ -141,12 +135,9 @@ describe('Edge Cases and Error Conditions', () => {
     })
 
     test('should handle maximum sequence numbers', () => {
-      const message = {
-        message_name: 'HEARTBEAT',
-        system_id: 255, // Max uint8_t,
-        component_id: 255, // Max uint8_t,
-        sequence: 255, // Max uint8_t,
-        payload: {
+      const bytes = serializer.serialize(
+        'HEARTBEAT',
+        {
           type: 255,
           autopilot: 255,
           base_mode: 255,
@@ -154,9 +145,8 @@ describe('Edge Cases and Error Conditions', () => {
           system_status: 255,
           mavlink_version: 3,
         },
-      }
-
-      const bytes = serializer.serialize(message)
+        { system_id: 255, component_id: 255, sequence: 255 }
+      )
       const parsed = parser.parseBytes(bytes)
 
       expect(parsed).toHaveLength(1)
@@ -167,12 +157,9 @@ describe('Edge Cases and Error Conditions', () => {
     })
 
     test('should handle zero values', () => {
-      const message = {
-        message_name: 'HEARTBEAT',
-        system_id: 0,
-        component_id: 0,
-        sequence: 0,
-        payload: {
+      const bytes = serializer.serialize(
+        'HEARTBEAT',
+        {
           type: 0,
           autopilot: 0,
           base_mode: 0,
@@ -180,9 +167,8 @@ describe('Edge Cases and Error Conditions', () => {
           system_status: 0,
           mavlink_version: 0,
         },
-      }
-
-      const bytes = serializer.serialize(message)
+        { system_id: 0, component_id: 0, sequence: 0 }
+      )
       const parsed = parser.parseBytes(bytes)
 
       expect(parsed).toHaveLength(1)
@@ -192,12 +178,9 @@ describe('Edge Cases and Error Conditions', () => {
     })
 
     test('should handle negative values for signed types', () => {
-      const message = {
-        message_name: 'GLOBAL_POSITION_INT',
-        system_id: 1,
-        component_id: 1,
-        sequence: 0,
-        payload: {
+      const bytes = serializer.serialize(
+        'GLOBAL_POSITION_INT',
+        {
           time_boot_ms: 0,
           lat: -900000000,
           lon: -1800000000,
@@ -208,9 +191,8 @@ describe('Edge Cases and Error Conditions', () => {
           vz: -32768,
           hdg: 36000,
         },
-      }
-
-      const bytes = serializer.serialize(message)
+        { system_id: 1, component_id: 1, sequence: 0 }
+      )
       const parsed = parser.parseBytes(bytes)
 
       expect(parsed).toHaveLength(1)
@@ -232,18 +214,14 @@ describe('Edge Cases and Error Conditions', () => {
       ]
 
       testCases.forEach((testCase) => {
-        const message = {
-          message_name: 'STATUSTEXT',
-          system_id: 1,
-          component_id: 1,
-          sequence: 0,
-          payload: {
+        const bytes = serializer.serialize(
+          'STATUSTEXT',
+          {
             severity: 6,
             text: testCase.text,
           },
-        }
-
-        const bytes = serializer.serialize(message)
+          { system_id: 1, component_id: 1, sequence: 0 }
+        )
         const parsed = parser.parseBytes(bytes)
 
         expect(parsed).toHaveLength(1)
@@ -299,13 +277,10 @@ describe('Edge Cases and Error Conditions', () => {
 
     test('should handle MAVLink v2 format frames', () => {
       // Use serializer which creates v2 frames
-      const message = {
-        message_name: 'HEARTBEAT',
-        system_id: 1,
-        component_id: 1,
-        sequence: 0,
-        protocol_version: 2,
-        payload: {
+      const serializer = new CommonSerializer()
+      const bytes = serializer.serialize(
+        'HEARTBEAT',
+        {
           type: 2,
           autopilot: 12,
           base_mode: 0,
@@ -313,10 +288,8 @@ describe('Edge Cases and Error Conditions', () => {
           system_status: 4,
           mavlink_version: 3,
         },
-      }
-
-      const serializer = new CommonSerializer()
-      const bytes = serializer.serialize(message)
+        { system_id: 1, component_id: 1, sequence: 0, protocol_version: 2 }
+      )
       const parsed = parser.parseBytes(bytes)
 
       expect(parsed).toHaveLength(1)
@@ -346,13 +319,10 @@ describe('Edge Cases and Error Conditions', () => {
         0x00, // Checksum (calculated)
       ])
 
-      const v2Message = {
-        message_name: 'HEARTBEAT',
-        system_id: 2,
-        component_id: 2,
-        sequence: 1,
-        protocol_version: 2,
-        payload: {
+      const serializer = new CommonSerializer()
+      const v2Frame = serializer.serialize(
+        'HEARTBEAT',
+        {
           type: 2,
           autopilot: 12,
           base_mode: 0,
@@ -360,10 +330,8 @@ describe('Edge Cases and Error Conditions', () => {
           system_status: 4,
           mavlink_version: 3,
         },
-      }
-
-      const serializer = new CommonSerializer()
-      const v2Frame = serializer.serialize(v2Message)
+        { system_id: 2, component_id: 2, sequence: 1, protocol_version: 2 }
+      )
 
       const combined = new Uint8Array([...v1Frame, ...v2Frame])
       const parsed = parser.parseBytes(combined)
@@ -389,12 +357,9 @@ describe('Edge Cases and Error Conditions', () => {
       // Create a large buffer with multiple messages
       const messages = []
       for (let i = 0; i < 1000; i++) {
-        const bytes = serializer.serialize({
-          message_name: 'HEARTBEAT',
-          system_id: (i % 254) + 1, // 1-254 (avoid 0 and 255)
-          component_id: 1,
-          sequence: i % 256,
-          payload: {
+        const bytes = serializer.serialize(
+          'HEARTBEAT',
+          {
             type: (i % 10) + 1,
             autopilot: 3,
             base_mode: 0,
@@ -402,7 +367,12 @@ describe('Edge Cases and Error Conditions', () => {
             system_status: 4,
             mavlink_version: 3,
           },
-        })
+          {
+            system_id: (i % 254) + 1,
+            component_id: 1,
+            sequence: i % 256,
+          }
+        )
         messages.push(...Array.from(bytes))
       }
 
@@ -419,12 +389,9 @@ describe('Edge Cases and Error Conditions', () => {
     })
 
     test('should handle rapid successive small parses', () => {
-      const message = {
-        message_name: 'HEARTBEAT',
-        system_id: 1,
-        component_id: 1,
-        sequence: 0,
-        payload: {
+      const bytes = serializer.serialize(
+        'HEARTBEAT',
+        {
           type: 1,
           autopilot: 3,
           base_mode: 0,
@@ -432,9 +399,8 @@ describe('Edge Cases and Error Conditions', () => {
           system_status: 4,
           mavlink_version: 3,
         },
-      }
-
-      const bytes = serializer.serialize(message)
+        { system_id: 1, component_id: 1, sequence: 0 }
+      )
       const totalParsed = []
 
       // Parse one byte at a time (stress test for buffer management)
@@ -449,12 +415,9 @@ describe('Edge Cases and Error Conditions', () => {
     })
 
     test('should handle buffer resets during parsing', () => {
-      const message = {
-        message_name: 'HEARTBEAT',
-        system_id: 1,
-        component_id: 1,
-        sequence: 0,
-        payload: {
+      const bytes = serializer.serialize(
+        'HEARTBEAT',
+        {
           type: 1,
           autopilot: 3,
           base_mode: 0,
@@ -462,9 +425,8 @@ describe('Edge Cases and Error Conditions', () => {
           system_status: 4,
           mavlink_version: 3,
         },
-      }
-
-      const bytes = serializer.serialize(message)
+        { system_id: 1, component_id: 1, sequence: 0 }
+      )
 
       // Parse partial data
       parser.parseBytes(bytes.slice(0, 10))
@@ -484,12 +446,9 @@ describe('Edge Cases and Error Conditions', () => {
       const commonSerializer = new CommonSerializer()
 
       // SYS_STATUS exists in common but not in minimal
-      const commonMessage = {
-        message_name: 'SYS_STATUS',
-        system_id: 1,
-        component_id: 1,
-        sequence: 0,
-        payload: {
+      const bytes = commonSerializer.serialize(
+        'SYS_STATUS',
+        {
           onboard_control_sensors_present: 0xff,
           onboard_control_sensors_enabled: 0xff,
           onboard_control_sensors_health: 0xff,
@@ -504,9 +463,8 @@ describe('Edge Cases and Error Conditions', () => {
           errors_count3: 0,
           errors_count4: 0,
         },
-      }
-
-      const bytes = commonSerializer.serialize(commonMessage)
+        { system_id: 1, component_id: 1, sequence: 0 }
+      )
       const parsed = minimalParser.parseBytes(bytes)
 
       expect(parsed).toHaveLength(1)
@@ -555,29 +513,21 @@ describe('Edge Cases and Error Conditions', () => {
     })
 
     test('should throw error for unknown message types', () => {
-      const invalidMessage = {
-        message_name: 'NONEXISTENT_MESSAGE',
-        system_id: 1,
-        component_id: 1,
-        sequence: 0,
-        payload: {},
-      }
-
       expect(() => {
-        serializer.serialize(invalidMessage)
+        serializer.serialize(
+          'NONEXISTENT_MESSAGE',
+          {},
+          { system_id: 1, component_id: 1, sequence: 0 }
+        )
       }).toThrow('Unknown message type: NONEXISTENT_MESSAGE')
     })
 
     test('should handle missing required fields gracefully', () => {
-      const incompleteMessage = {
-        message_name: 'HEARTBEAT',
-        system_id: 1,
-        component_id: 1,
-        sequence: 0,
-        payload: {},
-      }
-
-      const bytes = serializer.serialize(incompleteMessage)
+      const bytes = serializer.serialize(
+        'HEARTBEAT',
+        {},
+        { system_id: 1, component_id: 1, sequence: 0 }
+      )
       const parser = new CommonParser()
       const parsed = parser.parseBytes(bytes)
 
@@ -589,12 +539,9 @@ describe('Edge Cases and Error Conditions', () => {
     })
 
     test('should handle type coercion for numeric fields', () => {
-      const message = {
-        message_name: 'HEARTBEAT',
-        system_id: '1', // String instead of number,
-        component_id: 1.5, // Float instead of integer,
-        sequence: true, // Boolean instead of number,
-        payload: {
+      const bytes = serializer.serialize(
+        'HEARTBEAT',
+        {
           type: 6,
           autopilot: 8,
           base_mode: 81,
@@ -602,9 +549,12 @@ describe('Edge Cases and Error Conditions', () => {
           system_status: 4,
           mavlink_version: 3,
         },
-      } as any // Bypass TypeScript checking
-
-      const bytes = serializer.serialize(message)
+        {
+          system_id: '1' as any,
+          component_id: 1.5 as any,
+          sequence: true as any,
+        }
+      )
       const parser = new CommonParser()
       const parsed = parser.parseBytes(bytes)
 

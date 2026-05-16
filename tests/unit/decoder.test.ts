@@ -13,24 +13,6 @@ describe('Generated Decoder Tests', () => {
       expect(parser.getDialectName()).toBe('minimal')
     })
 
-    test('should support HEARTBEAT message (ID 0)', () => {
-      expect(parser.supportsMessage(0)).toBe(true)
-    })
-
-    test('should not support PROTOCOL_VERSION message (ID 300) - only in common dialect', () => {
-      expect(parser.supportsMessage(300)).toBe(false)
-    })
-
-    test('should not support unknown message', () => {
-      expect(parser.supportsMessage(999)).toBe(false)
-    })
-
-    test('should return supported message IDs', () => {
-      const ids = parser.getSupportedMessageIds()
-      expect(ids).toContain(0) // HEARTBEAT
-      expect(ids.length).toBe(1) // minimal dialect only has HEARTBEAT
-    })
-
     test('should decode HEARTBEAT message correctly', () => {
       // Create a valid MAVLink frame for HEARTBEAT
       // Wire format field order (size-based): custom_mode(4), type(1), autopilot(1), base_mode(1), system_status(1), mavlink_version(1)
@@ -203,17 +185,6 @@ describe('Generated Decoder Tests', () => {
       expect(result.payload.custom_mode).toBe(0)
       expect(result.payload.system_status).toBe(0)
       expect(result.payload.mavlink_version).toBe(0)
-    })
-
-    test('should get message definition', () => {
-      const heartbeatDef = parser.getMessageDefinition(0)
-      expect(heartbeatDef).toBeDefined()
-      expect(heartbeatDef?.name).toBe('HEARTBEAT')
-      expect(heartbeatDef?.id).toBe(0)
-      expect(heartbeatDef?.fields).toHaveLength(6)
-
-      const unknownDef = parser.getMessageDefinition(999)
-      expect(unknownDef).toBeUndefined()
     })
 
     test('should preserve frame metadata in decoded message', () => {

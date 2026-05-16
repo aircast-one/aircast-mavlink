@@ -18,21 +18,17 @@ describe('Node-MAVLink Compatibility Tests', () => {
       // 1. version, min_version, max_version at offset 0-5 (uint16_t, 2 bytes each)
       // 2. spec_version_hash at offset 6-13 (uint8_t[8], element size 1)
       // 3. library_version_hash at offset 14-21 (uint8_t[8], element size 1)
-      const message = {
-        message_name: 'PROTOCOL_VERSION',
-        system_id: 1,
-        component_id: 1,
-        sequence: 0,
-        payload: {
+      const frame = commonSerializer.serialize(
+        'PROTOCOL_VERSION',
+        {
           version: 200,
           min_version: 100,
           max_version: 300,
           spec_version_hash: [0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x11, 0x22],
           library_version_hash: [0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa],
         },
-      }
-
-      const frame = commonSerializer.serialize(message)
+        { system_id: 1, component_id: 1, sequence: 0 }
+      )
 
       // Extract payload based on MAVLink version
       let payload: Buffer
@@ -103,21 +99,17 @@ describe('Node-MAVLink Compatibility Tests', () => {
     })
 
     it('should handle PARAM_VALUE with char array', () => {
-      const message = {
-        message_name: 'PARAM_VALUE',
-        system_id: 1,
-        component_id: 1,
-        sequence: 0,
-        payload: {
+      const frame = commonSerializer.serialize(
+        'PARAM_VALUE',
+        {
           param_id: 'RATE_PIT_P',
           param_value: 0.15,
           param_type: 9, // MAV_PARAM_TYPE_REAL32
           param_count: 300,
           param_index: 42,
         },
-      }
-
-      const frame = commonSerializer.serialize(message)
+        { system_id: 1, component_id: 1, sequence: 0 }
+      )
       const payload = Buffer.from(frame.slice(6, -2))
 
       // Expected field order by ELEMENT type size (per MAVLink spec):
@@ -181,12 +173,9 @@ describe('Node-MAVLink Compatibility Tests', () => {
 
   describe('Real-world Message Tests', () => {
     it('should handle GPS_RAW_INT correctly', () => {
-      const message = {
-        message_name: 'GPS_RAW_INT',
-        system_id: 1,
-        component_id: 1,
-        sequence: 0,
-        payload: {
+      const frame = commonSerializer.serialize(
+        'GPS_RAW_INT',
+        {
           time_usec: '1234567890123456',
           fix_type: 3,
           lat: 473977420,
@@ -198,9 +187,8 @@ describe('Node-MAVLink Compatibility Tests', () => {
           cog: 1800,
           satellites_visible: 12,
         },
-      }
-
-      const frame = commonSerializer.serialize(message)
+        { system_id: 1, component_id: 1, sequence: 0 }
+      )
       const payload = Buffer.from(frame.slice(6, -2))
 
       // GPS_RAW_INT field sizes:
@@ -220,12 +208,9 @@ describe('Node-MAVLink Compatibility Tests', () => {
     })
 
     it('should handle HEARTBEAT correctly', () => {
-      const message = {
-        message_name: 'HEARTBEAT',
-        system_id: 1,
-        component_id: 1,
-        sequence: 0,
-        payload: {
+      const frame = commonSerializer.serialize(
+        'HEARTBEAT',
+        {
           type: 2,
           autopilot: 3,
           base_mode: 81,
@@ -233,9 +218,8 @@ describe('Node-MAVLink Compatibility Tests', () => {
           system_status: 4,
           mavlink_version: 3,
         },
-      }
-
-      const frame = commonSerializer.serialize(message)
+        { system_id: 1, component_id: 1, sequence: 0 }
+      )
       const payload = Buffer.from(frame.slice(6, -2))
 
       // HEARTBEAT should have custom_mode (uint32_t) first

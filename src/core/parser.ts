@@ -1,25 +1,16 @@
 // Base MAVLink dialect parser
-import {
-  ParsedMAVLinkMessage,
-  MAVLinkFrame,
-  MessageDefinition,
-  IMessageParser,
-  IMessageSerializer,
-  IMessageRegistry,
-} from './types'
+import { ParsedMAVLinkMessage, MAVLinkFrame, MessageDefinition } from './types'
 import { parseFrame } from './frame'
 import { decodePayload } from './codec'
 import { StreamBuffer } from './stream-buffer'
 import { MessageRegistry } from './message-registry'
-import { MessageSerializer } from './message-serializer'
 
 /**
  * Base class for dialect-specific parsers.
- * Composes MessageRegistry and MessageSerializer for full functionality.
+ * Handles frame parsing, buffering, and payload decoding.
  */
-export class DialectParser implements IMessageParser, IMessageSerializer, IMessageRegistry {
+export class DialectParser {
   protected readonly registry: MessageRegistry
-  protected readonly serializer: MessageSerializer
   protected readonly dialectName: string
   private readonly streamBuffer: StreamBuffer
 
@@ -27,21 +18,12 @@ export class DialectParser implements IMessageParser, IMessageSerializer, IMessa
     this.dialectName = dialectName
     this.streamBuffer = new StreamBuffer()
     this.registry = new MessageRegistry()
-    this.serializer = new MessageSerializer(this.registry)
   }
 
-  /**
-   * Register a message definition
-   */
-  protected registerMessageDefinition(def: MessageDefinition, crcExtra: number): void {
-    this.registry.register(def, crcExtra)
+  protected registerMessageDefinition(def: MessageDefinition): void {
+    this.registry.register(def)
   }
 
-  // ============ IMessageParser ============
-
-  /**
-   * Parse incoming bytes and return any complete messages
-   */
   parseBytes(data: Uint8Array): ParsedMAVLinkMessage[] {
     const results: ParsedMAVLinkMessage[] = []
 
@@ -72,9 +54,6 @@ export class DialectParser implements IMessageParser, IMessageSerializer, IMessa
     return results
   }
 
-  /**
-   * Decode a MAVLink frame into a parsed message
-   */
   decode(frame: MAVLinkFrame): ParsedMAVLinkMessage {
     const messageDef = this.registry.getMessageDefinition(frame.message_id)
     const protocolVersion = frame.protocol_version || (frame.magic === 0xfd ? 2 : 1)
@@ -116,78 +95,10 @@ export class DialectParser implements IMessageParser, IMessageSerializer, IMessa
     }
   }
 
-  /**
-   * Clear the internal buffer
-   */
   resetBuffer(): void {
     this.streamBuffer.reset()
   }
 
-  // ============ IMessageSerializer (delegated) ============
-
-  /**
-   * Serialize a message to MAVLink bytes
-   */
-  serializeMessage(message: Record<string, unknown> & { message_name: string }): Uint8Array {
-    return this.serializer.serializeMessage(message)
-  }
-
-  /**
-   * Complete a message with default values for all undefined fields
-   */
-  completeMessage(
-    message: Record<string, unknown> & { message_name: string }
-  ): Record<string, unknown> {
-    return this.serializer.completeMessage(message)
-  }
-
-  // ============ IMessageRegistry (delegated) ============
-
-  /**
-   * Get message definition by ID
-   */
-  getMessageDefinition(id: number): MessageDefinition | undefined {
-    return this.registry.getMessageDefinition(id)
-  }
-
-  /**
-   * Get message definition by name
-   */
-  getMessageDefinitionByName(name: string): MessageDefinition | undefined {
-    return this.registry.getMessageDefinitionByName(name)
-  }
-
-  /**
-   * Check if a message ID is supported
-   */
-  supportsMessage(messageId: number): boolean {
-    return this.registry.supportsMessage(messageId)
-  }
-
-  /**
-   * Check if a message name is supported
-   */
-  supportsMessageName(messageName: string): boolean {
-    return this.registry.supportsMessageName(messageName)
-  }
-
-  /**
-   * Get all supported message IDs
-   */
-  getSupportedMessageIds(): number[] {
-    return this.registry.getSupportedMessageIds()
-  }
-
-  /**
-   * Get all supported message names
-   */
-  getSupportedMessageNames(): string[] {
-    return this.registry.getSupportedMessageNames()
-  }
-
-  /**
-   * Get the dialect name
-   */
   getDialectName(): string {
     return this.dialectName
   }

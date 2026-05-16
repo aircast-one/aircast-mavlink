@@ -27,6 +27,24 @@ export interface RoundTripResult {
 }
 
 /**
+ * Extract (messageName, payload, options) from a legacy message object.
+ */
+function extractSerializeArgs(
+  message: any
+): [
+  string,
+  Record<string, unknown>,
+  { system_id: number; component_id: number; sequence: number; protocol_version?: 1 | 2 },
+] {
+  const { message_name, system_id, component_id, sequence, protocol_version, payload } = message
+  const options: any = { system_id, component_id, sequence }
+  if (protocol_version !== undefined) {
+    options.protocol_version = protocol_version
+  }
+  return [message_name, payload ?? {}, options]
+}
+
+/**
  * Base class for MAVLink parser/serializer testing
  */
 export abstract class MAVLinkTestBase {
@@ -37,7 +55,8 @@ export abstract class MAVLinkTestBase {
    * Perform a complete round-trip test: serialize -> parse -> validate
    */
   public roundTripTest(message: any): RoundTripResult {
-    const serializedBytes = this.serializer.serialize(message)
+    const [messageName, payload, options] = extractSerializeArgs(message)
+    const serializedBytes = this.serializer.serialize(messageName, payload, options)
     const parsedMessages = this.parser.parseBytes(serializedBytes)
 
     expect(serializedBytes).toBeInstanceOf(Uint8Array)
@@ -68,7 +87,8 @@ export abstract class MAVLinkTestBase {
     const allBytes: number[] = []
 
     for (const message of messages) {
-      const bytes = this.serializer.serialize(message)
+      const [messageName, payload, options] = extractSerializeArgs(message)
+      const bytes = this.serializer.serialize(messageName, payload, options)
       allBytes.push(...Array.from(bytes as Uint8Array))
     }
 
@@ -92,11 +112,13 @@ export abstract class MAVLinkTestBase {
   public errorHandlingTest(invalidMessage: any, expectedError?: string) {
     if (expectedError) {
       expect(() => {
-        this.serializer.serialize(invalidMessage)
+        const [messageName, payload, options] = extractSerializeArgs(invalidMessage)
+        this.serializer.serialize(messageName, payload, options)
       }).toThrow(expectedError)
     } else {
       expect(() => {
-        this.serializer.serialize(invalidMessage)
+        const [messageName, payload, options] = extractSerializeArgs(invalidMessage)
+        this.serializer.serialize(messageName, payload, options)
       }).toThrow()
     }
   }
@@ -105,7 +127,8 @@ export abstract class MAVLinkTestBase {
    * Test corrupted data handling
    */
   public corruptedDataTest(validMessage: any) {
-    const validBytes = this.serializer.serialize(validMessage)
+    const [messageName, payload, options] = extractSerializeArgs(validMessage)
+    const validBytes = this.serializer.serialize(messageName, payload, options)
     const corruptedBytes = new Uint8Array(validBytes)
 
     // Corrupt some bytes
@@ -213,7 +236,8 @@ export class CrossDialectTestHelper {
     message: any
   ) {
     // Serialize with source dialect
-    const serializedBytes = sourceSerializer.serialize(message)
+    const [messageName, payload, options] = extractSerializeArgs(message)
+    const serializedBytes = sourceSerializer.serialize(messageName, payload, options)
 
     // Parse with both dialects
     const sourceParsed = sourceParser.parseBytes(serializedBytes)
@@ -245,7 +269,8 @@ export class PerformanceTestHelper {
     // Generate large dataset
     for (let i = 0; i < iterations; i++) {
       const testMessage = { ...message, sequence: i }
-      const bytes = serializer.serialize(testMessage)
+      const [messageName, payload, options] = extractSerializeArgs(testMessage)
+      const bytes = serializer.serialize(messageName, payload, options)
       messages.push(...Array.from(bytes as Uint8Array))
     }
 

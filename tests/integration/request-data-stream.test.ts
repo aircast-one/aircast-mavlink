@@ -54,28 +54,29 @@ describe('REQUEST_DATA_STREAM Integration Tests', () => {
           })
 
           // Send initial HEARTBEAT
-          const heartbeat = {
-            message_name: 'HEARTBEAT',
+          const heartbeatPayload = {
+            type: 6, // GCS
+            autopilot: 0,
+            base_mode: 1,
+            custom_mode: 0,
+            system_status: 4,
+            mavlink_version: 3,
+          }
+
+          const heartbeatFrame = serializer.serialize('HEARTBEAT', heartbeatPayload, {
             system_id: 255,
             component_id: 190,
             sequence: sequence++,
-            payload: {
-              type: 6, // GCS
-              autopilot: 0,
-              base_mode: 1,
-              custom_mode: 0,
-              system_status: 4,
-              mavlink_version: 3,
-            },
-          }
-
-          const heartbeatFrame = serializer.serialize(heartbeat)
+          })
           client.write(heartbeatFrame)
 
           // Set up periodic heartbeats
           heartbeatInterval = setInterval(() => {
-            const hb = { ...heartbeat, sequence: sequence++ % 256 }
-            const frame = serializer.serialize(hb)
+            const frame = serializer.serialize('HEARTBEAT', heartbeatPayload, {
+              system_id: 255,
+              component_id: 190,
+              sequence: sequence++ % 256,
+            })
             client.write(frame)
           }, 1000)
 
@@ -83,21 +84,17 @@ describe('REQUEST_DATA_STREAM Integration Tests', () => {
           await new Promise((resolve) => setTimeout(resolve, 1000))
 
           // Send REQUEST_DATA_STREAM for GPS
-          const request = {
-            message_name: 'REQUEST_DATA_STREAM',
-            system_id: 255,
-            component_id: 190,
-            sequence: sequence++ % 256,
-            payload: {
+          const requestFrame = serializer.serialize(
+            'REQUEST_DATA_STREAM',
+            {
               target_system: 1,
               target_component: 1,
               req_stream_id: 6, // POSITION stream
               req_message_rate: 2, // 2 Hz
               start_stop: 1, // Start
             },
-          }
-
-          const requestFrame = serializer.serialize(request)
+            { system_id: 255, component_id: 190, sequence: sequence++ % 256 }
+          )
           client.write(requestFrame)
 
           // Wait for GPS data
@@ -130,21 +127,17 @@ describe('REQUEST_DATA_STREAM Integration Tests', () => {
     )
 
     it('should serialize REQUEST_DATA_STREAM with correct checksum', () => {
-      const request = {
-        message_name: 'REQUEST_DATA_STREAM',
-        system_id: 255,
-        component_id: 190,
-        sequence: 0,
-        payload: {
+      const frame = serializer.serialize(
+        'REQUEST_DATA_STREAM',
+        {
           target_system: 1,
           target_component: 1,
           req_stream_id: 0,
           req_message_rate: 4,
           start_stop: 1,
         },
-      }
-
-      const frame = serializer.serialize(request)
+        { system_id: 255, component_id: 190, sequence: 0 }
+      )
 
       // Verify frame structure
       expect(frame[0]).toBe(0xfe) // Magic byte
@@ -191,27 +184,32 @@ describe('REQUEST_DATA_STREAM Integration Tests', () => {
           })
 
           // Send initial HEARTBEAT
-          const heartbeat = {
-            message_name: 'HEARTBEAT',
-            system_id: 255,
-            component_id: 190,
-            sequence: sequence++,
-            payload: {
-              type: 6,
-              autopilot: 0,
-              base_mode: 1,
-              custom_mode: 0,
-              system_status: 4,
-              mavlink_version: 3,
-            },
+          const heartbeatPayload = {
+            type: 6,
+            autopilot: 0,
+            base_mode: 1,
+            custom_mode: 0,
+            system_status: 4,
+            mavlink_version: 3,
           }
 
-          client.write(serializer.serialize(heartbeat))
+          client.write(
+            serializer.serialize('HEARTBEAT', heartbeatPayload, {
+              system_id: 255,
+              component_id: 190,
+              sequence: sequence++,
+            })
+          )
 
           // Set up periodic heartbeats
           heartbeatInterval = setInterval(() => {
-            const hb = { ...heartbeat, sequence: sequence++ % 256 }
-            client.write(serializer.serialize(hb))
+            client.write(
+              serializer.serialize('HEARTBEAT', heartbeatPayload, {
+                system_id: 255,
+                component_id: 190,
+                sequence: sequence++ % 256,
+              })
+            )
           }, 1000)
 
           // Wait for connection
@@ -225,21 +223,19 @@ describe('REQUEST_DATA_STREAM Integration Tests', () => {
           ]
 
           for (const stream of streams) {
-            const request = {
-              message_name: 'REQUEST_DATA_STREAM',
-              system_id: 255,
-              component_id: 190,
-              sequence: sequence++ % 256,
-              payload: {
-                target_system: 1,
-                target_component: 1,
-                req_stream_id: stream.id,
-                req_message_rate: 1,
-                start_stop: 1,
-              },
-            }
-
-            client.write(serializer.serialize(request))
+            client.write(
+              serializer.serialize(
+                'REQUEST_DATA_STREAM',
+                {
+                  target_system: 1,
+                  target_component: 1,
+                  req_stream_id: stream.id,
+                  req_message_rate: 1,
+                  start_stop: 1,
+                },
+                { system_id: 255, component_id: 190, sequence: sequence++ % 256 }
+              )
+            )
             await new Promise((resolve) => setTimeout(resolve, 200))
           }
 
@@ -275,21 +271,17 @@ describe('REQUEST_DATA_STREAM Integration Tests', () => {
       ]
 
       streamIds.forEach((stream) => {
-        const request = {
-          message_name: 'REQUEST_DATA_STREAM',
-          system_id: 255,
-          component_id: 190,
-          sequence: 0,
-          payload: {
+        const frame = serializer.serialize(
+          'REQUEST_DATA_STREAM',
+          {
             target_system: 1,
             target_component: 1,
             req_stream_id: stream.id,
             req_message_rate: 4,
             start_stop: 1,
           },
-        }
-
-        const frame = serializer.serialize(request)
+          { system_id: 255, component_id: 190, sequence: 0 }
+        )
 
         // Basic validation
         expect(frame).toBeInstanceOf(Uint8Array)
@@ -302,36 +294,29 @@ describe('REQUEST_DATA_STREAM Integration Tests', () => {
     })
 
     it('should handle start/stop correctly', () => {
-      const startRequest = {
-        message_name: 'REQUEST_DATA_STREAM',
-        system_id: 255,
-        component_id: 190,
-        sequence: 0,
-        payload: {
+      const startFrame = serializer.serialize(
+        'REQUEST_DATA_STREAM',
+        {
           target_system: 1,
           target_component: 1,
           req_stream_id: 0,
           req_message_rate: 4,
           start_stop: 1, // Start
         },
-      }
+        { system_id: 255, component_id: 190, sequence: 0 }
+      )
 
-      const stopRequest = {
-        message_name: 'REQUEST_DATA_STREAM',
-        system_id: 255,
-        component_id: 190,
-        sequence: 0,
-        payload: {
+      const stopFrame = serializer.serialize(
+        'REQUEST_DATA_STREAM',
+        {
           target_system: 1,
           target_component: 1,
           req_stream_id: 0,
           req_message_rate: 4,
           start_stop: 0, // Stop
         },
-      }
-
-      const startFrame = serializer.serialize(startRequest)
-      const stopFrame = serializer.serialize(stopRequest)
+        { system_id: 255, component_id: 190, sequence: 0 }
+      )
 
       // Verify start_stop byte
       expect(startFrame[11]).toBe(1) // Start

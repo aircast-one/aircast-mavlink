@@ -11,18 +11,14 @@ describe('String Serialization Tests', () => {
 
   describe('STATUSTEXT Message Tests', () => {
     test('should serialize and parse STATUSTEXT message with simple string', () => {
-      const originalMessage = {
-        message_name: 'STATUSTEXT',
-        system_id: 1,
-        component_id: 1,
-        sequence: 15,
-        payload: {
+      const serializedBytes = serializer.serialize(
+        'STATUSTEXT',
+        {
           severity: 6, // MAV_SEVERITY_INFO
           text: 'Hello World',
         },
-      }
-
-      const serializedBytes = serializer.serialize(originalMessage)
+        { system_id: 1, component_id: 1, sequence: 15 }
+      )
       const parsedMessages = parser.parseBytes(serializedBytes)
 
       expect(parsedMessages).toHaveLength(1)
@@ -36,18 +32,14 @@ describe('String Serialization Tests', () => {
     test('should handle STATUSTEXT with maximum length string', () => {
       const maxText = 'A'.repeat(50) // STATUSTEXT text field is char[50]
 
-      const originalMessage = {
-        message_name: 'STATUSTEXT',
-        system_id: 1,
-        component_id: 1,
-        sequence: 16,
-        payload: {
+      const serializedBytes = serializer.serialize(
+        'STATUSTEXT',
+        {
           severity: 4, // MAV_SEVERITY_WARNING
           text: maxText,
         },
-      }
-
-      const serializedBytes = serializer.serialize(originalMessage)
+        { system_id: 1, component_id: 1, sequence: 16 }
+      )
       const parsedMessages = parser.parseBytes(serializedBytes)
 
       expect(parsedMessages).toHaveLength(1)
@@ -57,18 +49,14 @@ describe('String Serialization Tests', () => {
     })
 
     test('should handle STATUSTEXT with empty string', () => {
-      const originalMessage = {
-        message_name: 'STATUSTEXT',
-        system_id: 1,
-        component_id: 1,
-        sequence: 17,
-        payload: {
+      const serializedBytes = serializer.serialize(
+        'STATUSTEXT',
+        {
           severity: 2, // MAV_SEVERITY_CRITICAL
           text: '',
         },
-      }
-
-      const serializedBytes = serializer.serialize(originalMessage)
+        { system_id: 1, component_id: 1, sequence: 17 }
+      )
       const parsedMessages = parser.parseBytes(serializedBytes)
 
       expect(parsedMessages).toHaveLength(1)
@@ -80,18 +68,14 @@ describe('String Serialization Tests', () => {
     test('should truncate text that exceeds maximum length', () => {
       const longText = 'A'.repeat(60) // Exceeds 50 character limit
 
-      const originalMessage = {
-        message_name: 'STATUSTEXT',
-        system_id: 1,
-        component_id: 1,
-        sequence: 18,
-        payload: {
+      const serializedBytes = serializer.serialize(
+        'STATUSTEXT',
+        {
           severity: 1, // MAV_SEVERITY_EMERGENCY
           text: longText,
         },
-      }
-
-      const serializedBytes = serializer.serialize(originalMessage)
+        { system_id: 1, component_id: 1, sequence: 18 }
+      )
       const parsedMessages = parser.parseBytes(serializedBytes)
 
       expect(parsedMessages).toHaveLength(1)

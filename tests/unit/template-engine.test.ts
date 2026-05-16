@@ -69,7 +69,6 @@ describe('TemplateEngine', () => {
 
       expect(result).toBeDefined()
       expect(typeof result).toBe('string')
-      expect(result).toContain('// This dialect has no enums defined')
       expect(result).toContain('export {};')
     })
   })
@@ -115,8 +114,8 @@ describe('TemplateEngine', () => {
       // Should contain import examples in comments
       expect(result).toContain('// Parser')
       expect(result).toContain('// Constants')
-      expect(result).toContain('// Message types')
-      expect(result).toContain('// Types')
+      expect(result).toContain('// Typed messages')
+      expect(result).toContain('// Serializer')
     })
 
     it('should include dialect name in documentation', () => {

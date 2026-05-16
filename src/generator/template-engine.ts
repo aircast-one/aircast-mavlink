@@ -14,7 +14,6 @@ export class TemplateEngine {
     this.templates.set(
       'types',
       Handlebars.compile(`// Auto-generated TypeScript types for {{ dialectName }} dialect
-// Generated from MAVLink XML definitions
 
 export interface ParsedMAVLinkMessage {
   timestamp: number;
@@ -31,7 +30,6 @@ export interface ParsedMAVLinkMessage {
   dialect?: string;
 }
 
-
 {{#unless includeEnums}}
 {{#each enums}}
 {{#each description}}
@@ -40,19 +38,17 @@ export interface ParsedMAVLinkMessage {
 export type {{ name }} =
 {{#each values}}
   | {{ value }}{{#if description}} // {{ name }} - {{ join description " " }}{{/if}}
-{{/each}}
-  | number;
+{{/each}};
 
 {{/each}}
 {{/unless}}
 `)
     )
 
-    // Enums template - uses type unions + const values for zero runtime overhead
+    // Enums template
     this.templates.set(
       'enums',
       Handlebars.compile(`// Auto-generated TypeScript enums for {{ dialectName }} dialect
-// Uses type unions + const values for optimal tree-shaking (no runtime enum objects)
 
 {{#each enums}}
 {{#each description}}
@@ -72,13 +68,12 @@ export const {{ name }} = {{ value }} as const;
 
 {{/each}}
 {{#unless enums.length}}
-// This dialect has no enums defined
 export {};
 {{/unless}}
 `)
     )
 
-    // Individual constant module template
+    // Individual constant module template — closed union (no | number)
     this.templates.set(
       'constant-module',
       Handlebars.compile(`// Auto-generated constants: {{ name }}
@@ -99,29 +94,24 @@ export const {{ name }} = {{ value }} as const;
 `)
     )
 
-    // Constants index template - re-exports all constants
+    // Constants index template
     this.templates.set(
       'constants-index',
       Handlebars.compile(`// Auto-generated constants for {{ dialectName }} dialect
-// Import individual constants for optimal tree-shaking
 
 {{#each enums}}
 export * from './{{ fileName }}';
 {{/each}}
 {{#unless enums.length}}
-// This dialect has no constants defined
 export {};
 {{/unless}}
 `)
     )
 
-    // Messages template
+    // Messages template (used for single-file format)
     this.templates.set(
       'messages',
-      Handlebars.compile(`// Auto-generated TypeScript message interfaces for {{ dialectName }} dialect
-// Constants are in separate files: import { MAV_TYPE_QUADROTOR } from './constants/mav-type'
-
-import { ParsedMAVLinkMessage } from './types';
+      Handlebars.compile(`// Auto-generated message types for {{ dialectName }} dialect
 
 {{#each messages}}
 {{#each description}}
@@ -129,85 +119,91 @@ import { ParsedMAVLinkMessage } from './types';
 {{/each}}
 export interface Message{{ name }} {
 {{#each fields}}
-{{#each description}}
-  // {{ this }}
-{{/each}}
   {{ name }}{{#if optional}}?{{/if}}: {{ type }};
 {{/each}}
 }
 
 {{/each}}
-
-// Message type map for type-safe message handling
-export interface MessageTypeMap {
-{{#each messages}}
-  {{ originalName }}: Message{{ name }};
-{{/each}}
-}
-
-// Union type of all message types
-export type AnyMessage = ParsedMAVLinkMessage;
-
-// Use discriminated union for type narrowing:
-//   if (msg.message_name === 'HEARTBEAT') { /* msg.payload is MessageHeartbeat */ }
 `)
     )
 
-    // Index template - no re-exports, just documentation
+    // Index template
     this.templates.set(
       'index',
       Handlebars.compile(`// {{ dialectName }} dialect
 //
-// Import directly from specific modules for optimal tree-shaking:
-//
 // Parser (with all messages pre-registered):
 //   import { {{capitalize dialectName}}Parser } from '@aircast-4g/mavlink/dialects/{{ dialectName }}/full'
 //
-// Parser (register messages manually):
-//   import { {{capitalize dialectName}}Parser, registerMessage } from '@aircast-4g/mavlink/dialects/{{ dialectName }}/parser'
+// Serializer:
+//   import { {{capitalize dialectName}}Serializer } from '@aircast-4g/mavlink/dialects/{{ dialectName }}/full'
+//
+// Typed messages:
+//   import type { {{capitalize dialectName}}Message } from '@aircast-4g/mavlink/dialects/{{ dialectName }}/messages'
 //
 // Constants:
 //   import { MAV_TYPE_QUADROTOR } from '@aircast-4g/mavlink/dialects/{{ dialectName }}/constants/mav-type'
-//
-// Message types:
-//   import type { MessageHeartbeat } from '@aircast-4g/mavlink/dialects/{{ dialectName }}/messages/heartbeat'
-//
-// Types:
-//   import type { ParsedMAVLinkMessage } from '@aircast-4g/mavlink/dialects/{{ dialectName }}/types'
 `)
     )
 
-    // Full bundle template - registers all messages
+    // Full bundle template — registers all messages with parser and serializer
     this.templates.set(
       'full',
       Handlebars.compile(`// Auto-generated full dialect bundle
-// All messages are pre-registered with the parser
-// Import constants directly: import { MAV_TYPE_QUADROTOR } from './constants/mav-type'
+// All messages are pre-registered with parser and serializer
 
 export * from './parser';
 
 import { registerMessage } from './parser';
 {{#each messages}}
-import { {{ name }}Definition, {{ toUpperCase originalName }}_ID, {{ toUpperCase originalName }}_CRC_EXTRA } from './messages/{{ kebabCase originalName }}';
+import { {{ name }}Definition } from './messages/{{ kebabCase originalName }}';
 {{/each}}
 
 // Register all messages
 {{#each messages}}
-registerMessage({{ toUpperCase originalName }}_ID, {{ name }}Definition, {{ toUpperCase originalName }}_CRC_EXTRA);
+registerMessage({{ name }}Definition);
 {{/each}}
 `)
     )
 
-    // Messages re-export template (types only, no runtime code)
+    // Messages re-export template (types + discriminated union + serialize re-exports)
     this.templates.set(
       'messages-reexport',
       Handlebars.compile(`// Auto-generated message type re-exports for {{ dialectName }} dialect
-// This file exports only TypeScript types (interfaces) - no runtime code
-// Types are tree-shaken by bundlers, so this has no bundle size impact
 
+import type { ParsedMAVLinkMessage } from './types';
 {{#each messages}}
-export type { Message{{ name }} } from './messages/{{ kebabCase originalName }}';
+import type { Message{{ name }} } from './messages/{{ kebabCase originalName }}';
 {{/each}}
+
+// Re-export message interfaces
+{{#each messages}}
+export type { Message{{ name }} };
+{{/each}}
+
+// Re-export serialize functions
+{{#each messages}}
+export { serialize{{ name }} } from './messages/{{ kebabCase originalName }}';
+{{/each}}
+
+// Message name literal type
+export type {{ capitalize dialectName }}MessageName =
+{{#each messages}}
+  | '{{ originalName }}'
+{{/each}};
+
+// Discriminated union — narrows payload automatically via message_name
+export type {{ capitalize dialectName }}Message =
+{{#each messages}}
+  | (Omit<ParsedMAVLinkMessage, 'message_name' | 'payload'> & { message_name: '{{ originalName }}'; payload: Message{{ name }} })
+{{/each}};
+
+// Message type map
+export interface MessageTypeMap {
+{{#each messages}}
+  {{ originalName }}: Message{{ name }};
+{{/each}}
+}
 `)
     )
 
@@ -220,80 +216,72 @@ export type { Message{{ name }} } from './messages/{{ kebabCase originalName }}'
 `)
     )
 
-    // Parser template with message registry for tree-shaking
+    // Parser template — parser + standalone serializer
     this.templates.set(
       'parser',
       Handlebars.compile(`// Auto-generated parser for {{{ dialectName }}} dialect
-// Generated from MAVLink XML definitions
 
 import {
   MessageDefinition,
+  SerializeOptions,
   DialectParser,
+  MessageSerializer,
 } from '../../../core';
 
-// Message registry for lazy loading
-const MESSAGE_REGISTRY = new Map<number, MessageDefinition>();
-const CRC_EXTRA_TABLE: Record<number, number> = {};
+// Shared definition registry
+const DEFINITIONS: MessageDefinition[] = [];
 
 /**
- * Register a message definition. Called automatically when message modules are imported.
+ * Register a message definition. Called by full.ts imports.
  */
-export function registerMessage(id: number, definition: MessageDefinition, crcExtra: number): void {
-  MESSAGE_REGISTRY.set(id, definition);
-  CRC_EXTRA_TABLE[id] = crcExtra;
+export function registerMessage(definition: MessageDefinition): void {
+  DEFINITIONS.push(definition);
 }
 
 export class {{capitalize dialectName}}Parser extends DialectParser {
   constructor() {
     super('{{{ dialectName }}}');
-    for (const [id, def] of MESSAGE_REGISTRY.entries()) {
-      this.registerMessageDefinition(def, CRC_EXTRA_TABLE[id]);
+    for (const def of DEFINITIONS) {
+      this.registerMessageDefinition(def);
+    }
+  }
+}
+
+/**
+ * Standalone serializer — does not require a parser.
+ * Pass message definitions to the constructor for selective registration,
+ * or use no arguments to register all definitions from the /full import.
+ */
+export class {{capitalize dialectName}}Serializer {
+  private readonly serializer: MessageSerializer;
+
+  constructor(definitions?: MessageDefinition[]) {
+    this.serializer = new MessageSerializer();
+    const defs = definitions ?? DEFINITIONS;
+    for (const def of defs) {
+      this.serializer.registerDefinition(def);
     }
   }
 
-}
-
-// Dialect-specific serializer (delegates to parser)
-export class {{capitalize dialectName}}Serializer {
-  readonly parser: {{capitalize dialectName}}Parser;
-
-  constructor() {
-    this.parser = new {{capitalize dialectName}}Parser();
-  }
-
-  serialize(message: Record<string, unknown> & { message_name: string }): Uint8Array {
-    return this.parser.serializeMessage(message);
-  }
-
-  completeMessage(message: Record<string, unknown> & { message_name: string }): Record<string, unknown> {
-    return this.parser.completeMessage(message);
-  }
-
-  getSupportedMessages(): string[] {
-    return this.parser.getSupportedMessageNames();
-  }
-
-  supportsMessage(messageName: string): boolean {
-    return this.parser.supportsMessageName(messageName);
+  serialize(messageName: string, payload: Record<string, unknown>, options: SerializeOptions): Uint8Array {
+    return this.serializer.serialize(messageName, payload, options);
   }
 }
 `)
     )
 
-    // Individual message module template (pure exports, no side-effects)
+    // Individual message module template
     this.templates.set(
       'message-module',
       Handlebars.compile(`// Auto-generated message module for {{ originalName }}
-// Dialect: {{ dialectName }}
 
-import type { MessageDefinition } from '../../../../core';
-
-export const {{ constantName }}_ID = {{ id }};
-export const {{ constantName }}_CRC_EXTRA = {{ crcExtra }};
+import type { MessageDefinition, SerializeOptions } from '../../../../core';
+import { MessageSerializer } from '../../../../core';
 
 export const {{ name }}Definition: MessageDefinition = {
   id: {{ id }},
   name: '{{ originalName }}',
+  crcExtra: {{ crcExtra }},
   fields: [
 {{#each fields}}
     { name: '{{ name }}', type: '{{ originalType }}'{{#if arrayLength}}, arrayLength: {{ arrayLength }}{{/if}}{{#if extension}}, extension: true{{/if}} },
@@ -308,6 +296,16 @@ export interface Message{{ name }} {
 {{#each fields}}
   {{ name }}{{#if optional}}?{{/if}}: {{ basicType type }};
 {{/each}}
+}
+
+const _serializer = new MessageSerializer();
+_serializer.registerDefinition({{ name }}Definition);
+
+/**
+ * Type-safe serialize function for {{ originalName }}.
+ */
+export function serialize{{ name }}(payload: Message{{ name }}, options: SerializeOptions): Uint8Array {
+  return _serializer.serialize('{{ originalName }}', payload as unknown as Record<string, unknown>, options);
 }
 `)
     )
@@ -338,18 +336,14 @@ export interface Message{{ name }} {
       return str.toLowerCase().replace(/_/g, '-')
     })
 
-    // Convert any type to basic TypeScript type (no enum references)
     Handlebars.registerHelper('basicType', (type: string) => {
       if (type.endsWith('[]')) {
         const baseType = type.slice(0, -2)
-        // If it's a string array, return string[]
         if (baseType === 'string') return 'string[]'
-        // Otherwise assume number array (for any enum or numeric type)
         return 'number[]'
       }
       if (type === 'string') return 'string'
       if (type === 'bigint') return 'bigint'
-      // Default to number for all numeric and enum types
       return 'number'
     })
 
@@ -372,34 +366,25 @@ export interface Message{{ name }} {
 
   generateTypes(dialect: TypeScriptDialect, includeEnums: boolean = true): string {
     const template = this.templates.get('types')
-    if (!template) {
-      throw new Error('Types template not found')
-    }
+    if (!template) throw new Error('Types template not found')
     return template({ ...dialect, includeEnums })
   }
 
   generateEnums(dialect: TypeScriptDialect): string {
     const template = this.templates.get('enums')
-    if (!template) {
-      throw new Error('Enums template not found')
-    }
+    if (!template) throw new Error('Enums template not found')
     return template(dialect)
   }
 
   generateConstantModule(enumDef: TypeScriptDialect['enums'][0]): string {
     const template = this.templates.get('constant-module')
-    if (!template) {
-      throw new Error('Constant module template not found')
-    }
+    if (!template) throw new Error('Constant module template not found')
     return template(enumDef)
   }
 
   generateConstantsIndex(dialect: TypeScriptDialect): string {
     const template = this.templates.get('constants-index')
-    if (!template) {
-      throw new Error('Constants index template not found')
-    }
-    // Add fileName to each constant for the template
+    if (!template) throw new Error('Constants index template not found')
     const enumsWithFileNames = dialect.enums.map((e) => ({
       ...e,
       fileName: e.name.toLowerCase().replace(/_/g, '-'),
@@ -409,23 +394,15 @@ export interface Message{{ name }} {
 
   generateMessages(dialect: TypeScriptDialect, includeEnums: boolean = false): string {
     const template = this.templates.get('messages')
-    if (!template) {
-      throw new Error('Messages template not found')
-    }
-
-    // Filter enums to only include those actually used in message fields
+    if (!template) throw new Error('Messages template not found')
     const usedEnums = this.getUsedEnums(dialect)
-
     return template({ ...dialect, includeEnums, enums: usedEnums })
   }
 
   private getUsedEnums(dialect: TypeScriptDialect): TypeScriptEnum[] {
-    // Collect all field types used in messages
     const usedTypes = new Set<string>()
-
     for (const message of dialect.messages) {
       for (const field of message.fields) {
-        // Extract base type from array notation (e.g., "ESC_FAILURE_FLAGS[]" -> "ESC_FAILURE_FLAGS")
         let baseType = field.type
         if (baseType.endsWith('[]')) {
           baseType = baseType.slice(0, -2)
@@ -433,24 +410,18 @@ export interface Message{{ name }} {
         usedTypes.add(baseType)
       }
     }
-
-    // Filter enums to only include those referenced in fields
     return dialect.enums.filter((enumDef) => usedTypes.has(enumDef.name))
   }
 
   generateIndex(dialect: TypeScriptDialect, includeEnums: boolean = false): string {
     const template = this.templates.get('index')
-    if (!template) {
-      throw new Error('Index template not found')
-    }
+    if (!template) throw new Error('Index template not found')
     return template({ ...dialect, includeEnums })
   }
 
   generateSingle(dialect: TypeScriptDialect): string {
     const template = this.templates.get('single')
-    if (!template) {
-      throw new Error('Single template not found')
-    }
+    if (!template) throw new Error('Single template not found')
     const context = {
       ...dialect,
       generateTypes: () => this.generateTypes(dialect, false),
@@ -461,17 +432,13 @@ export interface Message{{ name }} {
 
   generateDecoder(dialect: TypeScriptDialect): string {
     const template = this.templates.get('decoder')
-    if (!template) {
-      throw new Error('Decoder template not found')
-    }
+    if (!template) throw new Error('Decoder template not found')
     return template(dialect)
   }
 
   generateParser(dialect: TypeScriptDialect): string {
     const template = this.templates.get('parser')
-    if (!template) {
-      throw new Error('Parser template not found')
-    }
+    if (!template) throw new Error('Parser template not found')
     return template(dialect)
   }
 
@@ -494,25 +461,19 @@ export interface Message{{ name }} {
     description?: string[]
   }): string {
     const template = this.templates.get('message-module')
-    if (!template) {
-      throw new Error('Message module template not found')
-    }
+    if (!template) throw new Error('Message module template not found')
     return template(context)
   }
 
   generateFull(dialect: TypeScriptDialect): string {
     const template = this.templates.get('full')
-    if (!template) {
-      throw new Error('Full template not found')
-    }
+    if (!template) throw new Error('Full template not found')
     return template(dialect)
   }
 
   generateMessagesReexport(dialect: TypeScriptDialect): string {
     const template = this.templates.get('messages-reexport')
-    if (!template) {
-      throw new Error('Messages re-export template not found')
-    }
+    if (!template) throw new Error('Messages re-export template not found')
     return template(dialect)
   }
 }

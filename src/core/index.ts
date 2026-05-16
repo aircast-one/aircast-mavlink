@@ -1,4 +1,4 @@
-// Core MAVLink modules - shared across all dialects
+// Core MAVLink modules — shared across all dialects
 export * from './types'
 export * from './crc'
 export * from './codec'

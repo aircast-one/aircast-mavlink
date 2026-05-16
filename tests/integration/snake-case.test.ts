@@ -13,13 +13,10 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
 
     describe('HEARTBEAT Message Round-trip', () => {
       test('should parse and serialize HEARTBEAT message correctly with snake_case', () => {
-        const originalMessage = {
-          message_name: 'HEARTBEAT',
-          system_id: 1,
-          component_id: 1,
-          sequence: 42,
-          protocol_version: 2,
-          payload: {
+        // Serialize to bytes
+        const serializedBytes = serializer.serialize(
+          'HEARTBEAT',
+          {
             type: 6,
             autopilot: 8,
             base_mode: 81,
@@ -27,10 +24,8 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
             system_status: 4,
             mavlink_version: 3,
           },
-        }
-
-        // Serialize to bytes
-        const serializedBytes = serializer.serialize(originalMessage)
+          { system_id: 1, component_id: 1, sequence: 42, protocol_version: 2 }
+        )
 
         // Verify we got bytes
         expect(serializedBytes).toBeInstanceOf(Uint8Array)
@@ -64,12 +59,9 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
       })
 
       test('should handle HEARTBEAT with default values using snake_case', () => {
-        const originalMessage = {
-          message_name: 'HEARTBEAT',
-          system_id: 255,
-          component_id: 250,
-          sequence: 0,
-          payload: {
+        const serializedBytes = serializer.serialize(
+          'HEARTBEAT',
+          {
             type: 0,
             autopilot: 0,
             base_mode: 0,
@@ -77,9 +69,8 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
             system_status: 0,
             mavlink_version: 3,
           },
-        }
-
-        const serializedBytes = serializer.serialize(originalMessage)
+          { system_id: 255, component_id: 250, sequence: 0 }
+        )
         const parsedMessages = parser.parseBytes(serializedBytes)
 
         expect(parsedMessages).toHaveLength(1)
@@ -98,12 +89,9 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
 
     describe('SYS_STATUS Message Round-trip', () => {
       test('should parse and serialize SYS_STATUS message correctly with snake_case', () => {
-        const originalMessage = {
-          message_name: 'SYS_STATUS',
-          system_id: 1,
-          component_id: 1,
-          sequence: 5,
-          payload: {
+        const serializedBytes = serializer.serialize(
+          'SYS_STATUS',
+          {
             onboard_control_sensors_present: 0x1f,
             onboard_control_sensors_enabled: 0x0f,
             onboard_control_sensors_health: 0x07,
@@ -118,9 +106,8 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
             errors_count3: 0,
             errors_count4: 0,
           },
-        }
-
-        const serializedBytes = serializer.serialize(originalMessage)
+          { system_id: 1, component_id: 1, sequence: 5 }
+        )
         const parsedMessages = parser.parseBytes(serializedBytes)
 
         expect(parsedMessages).toHaveLength(1)
@@ -148,50 +135,43 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
 
     describe('Multiple Messages with snake_case', () => {
       test('should handle multiple different messages in sequence', () => {
-        const messages = [
-          {
-            message_name: 'HEARTBEAT',
-            system_id: 1,
-            component_id: 1,
-            sequence: 0,
-            payload: {
-              type: 6,
-              autopilot: 8,
-              base_mode: 0,
-              custom_mode: 0,
-              system_status: 4,
-              mavlink_version: 3,
-            },
-          },
-          {
-            message_name: 'SYS_STATUS',
-            system_id: 1,
-            component_id: 1,
-            sequence: 1,
-            payload: {
-              onboard_control_sensors_present: 0x1f,
-              onboard_control_sensors_enabled: 0x0f,
-              onboard_control_sensors_health: 0x07,
-              load: 250,
-              voltage_battery: 12000,
-              current_battery: 1000,
-              battery_remaining: 90,
-              drop_rate_comm: 0,
-              errors_comm: 0,
-              errors_count1: 0,
-              errors_count2: 0,
-              errors_count3: 0,
-              errors_count4: 0,
-            },
-          },
-        ]
-
         // Serialize all messages and concatenate bytes
         const allBytes: number[] = []
-        for (const message of messages) {
-          const bytes = serializer.serialize(message)
-          allBytes.push(...Array.from(bytes))
-        }
+
+        const bytes1 = serializer.serialize(
+          'HEARTBEAT',
+          {
+            type: 6,
+            autopilot: 8,
+            base_mode: 0,
+            custom_mode: 0,
+            system_status: 4,
+            mavlink_version: 3,
+          },
+          { system_id: 1, component_id: 1, sequence: 0 }
+        )
+        allBytes.push(...Array.from(bytes1))
+
+        const bytes2 = serializer.serialize(
+          'SYS_STATUS',
+          {
+            onboard_control_sensors_present: 0x1f,
+            onboard_control_sensors_enabled: 0x0f,
+            onboard_control_sensors_health: 0x07,
+            load: 250,
+            voltage_battery: 12000,
+            current_battery: 1000,
+            battery_remaining: 90,
+            drop_rate_comm: 0,
+            errors_comm: 0,
+            errors_count1: 0,
+            errors_count2: 0,
+            errors_count3: 0,
+            errors_count4: 0,
+          },
+          { system_id: 1, component_id: 1, sequence: 1 }
+        )
+        allBytes.push(...Array.from(bytes2))
 
         const combinedBytes = new Uint8Array(allBytes)
 
@@ -220,16 +200,12 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
 
     describe('Error Handling', () => {
       test('should throw error for unknown message type', () => {
-        const invalidMessage = {
-          message_name: 'UNKNOWN_MESSAGE_TYPE',
-          system_id: 1,
-          component_id: 1,
-          sequence: 0,
-          payload: {},
-        }
-
         expect(() => {
-          serializer.serialize(invalidMessage)
+          serializer.serialize(
+            'UNKNOWN_MESSAGE_TYPE',
+            {},
+            { system_id: 1, component_id: 1, sequence: 0 }
+          )
         }).toThrow('Unknown message type: UNKNOWN_MESSAGE_TYPE')
       })
     })
@@ -246,12 +222,9 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
 
     describe('HEARTBEAT Message Round-trip', () => {
       test('should parse and serialize HEARTBEAT message correctly with snake_case', () => {
-        const originalMessage = {
-          message_name: 'HEARTBEAT',
-          system_id: 2,
-          component_id: 3,
-          sequence: 100,
-          payload: {
+        const serializedBytes = serializer.serialize(
+          'HEARTBEAT',
+          {
             type: 1,
             autopilot: 3,
             base_mode: 157,
@@ -259,9 +232,8 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
             system_status: 3,
             mavlink_version: 3,
           },
-        }
-
-        const serializedBytes = serializer.serialize(originalMessage)
+          { system_id: 2, component_id: 3, sequence: 100 }
+        )
         const parsedMessages = parser.parseBytes(serializedBytes)
 
         expect(parsedMessages).toHaveLength(1)
@@ -294,21 +266,17 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
     })
 
     test('should parse and serialize PROTOCOL_VERSION message with arrays correctly using snake_case', () => {
-      const originalMessage = {
-        message_name: 'PROTOCOL_VERSION',
-        system_id: 1,
-        component_id: 1,
-        sequence: 50,
-        payload: {
+      const serializedBytes = serializer.serialize(
+        'PROTOCOL_VERSION',
+        {
           version: 200,
           min_version: 100,
           max_version: 300,
           spec_version_hash: [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08],
           library_version_hash: [0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18],
         },
-      }
-
-      const serializedBytes = serializer.serialize(originalMessage)
+        { system_id: 1, component_id: 1, sequence: 50 }
+      )
       const parsedMessages = parser.parseBytes(serializedBytes)
 
       expect(parsedMessages).toHaveLength(1)
@@ -324,20 +292,16 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
     })
 
     test('should handle PROTOCOL_VERSION with partial arrays using snake_case', () => {
-      const originalMessage = {
-        message_name: 'PROTOCOL_VERSION',
-        system_id: 1,
-        component_id: 1,
-        sequence: 51,
-        payload: {
+      const serializedBytes = serializer.serialize(
+        'PROTOCOL_VERSION',
+        {
           version: 150,
           min_version: 50,
           max_version: 200,
           spec_version_hash: [0xaa, 0xbb, 0xcc],
         },
-      }
-
-      const serializedBytes = serializer.serialize(originalMessage)
+        { system_id: 1, component_id: 1, sequence: 51 }
+      )
       const parsedMessages = parser.parseBytes(serializedBytes)
 
       expect(parsedMessages).toHaveLength(1)
@@ -359,21 +323,16 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
       const commonParser = new CommonParser()
 
       // Create HEARTBEAT in minimal dialect using snake_case
-      const heartbeatMessage = {
-        message_name: 'HEARTBEAT',
-        system_id: 1,
-        component_id: 1,
-        sequence: 0,
-        payload: {
+      const serializedBytes = minimalSerializer.serialize(
+        'HEARTBEAT',
+        {
           base_mode: 89,
           custom_mode: 5432,
           system_status: 4,
           mavlink_version: 3,
         },
-      }
-
-      // Serialize with minimal
-      const serializedBytes = minimalSerializer.serialize(heartbeatMessage)
+        { system_id: 1, component_id: 1, sequence: 0 }
+      )
 
       // Parse with both parsers
       const minimalParsed = minimalParser.parseBytes(serializedBytes)
@@ -403,12 +362,9 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
       const serializer = new CommonSerializer()
 
       // Test HEARTBEAT with extreme values using snake_case
-      const heartbeatMessage = {
-        message_name: 'HEARTBEAT',
-        system_id: 1,
-        component_id: 1,
-        sequence: 0,
-        payload: {
+      const serializedBytes = serializer.serialize(
+        'HEARTBEAT',
+        {
           type: 255,
           autopilot: 255,
           base_mode: 255,
@@ -416,9 +372,8 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
           system_status: 255,
           mavlink_version: 3,
         },
-      }
-
-      const serializedBytes = serializer.serialize(heartbeatMessage)
+        { system_id: 1, component_id: 1, sequence: 0 }
+      )
       const parsedMessages = parser.parseBytes(serializedBytes)
 
       expect(parsedMessages).toHaveLength(1)
@@ -438,12 +393,9 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
       const parser = new CommonParser()
       const serializer = new CommonSerializer()
 
-      const message = {
-        message_name: 'HEARTBEAT',
-        system_id: 1,
-        component_id: 1,
-        sequence: 0,
-        payload: {
+      const fullBytes = serializer.serialize(
+        'HEARTBEAT',
+        {
           type: 6,
           autopilot: 8,
           base_mode: 0,
@@ -451,9 +403,8 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
           system_status: 4,
           mavlink_version: 3,
         },
-      }
-
-      const fullBytes = serializer.serialize(message)
+        { system_id: 1, component_id: 1, sequence: 0 }
+      )
 
       // Split the message into two parts
       const part1 = fullBytes.slice(0, 10)
@@ -476,12 +427,9 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
       const parser = new CommonParser()
       const serializer = new CommonSerializer()
 
-      const message1 = {
-        message_name: 'HEARTBEAT',
-        system_id: 1,
-        component_id: 1,
-        sequence: 0,
-        payload: {
+      const bytes1 = serializer.serialize(
+        'HEARTBEAT',
+        {
           type: 1,
           autopilot: 3,
           base_mode: 0,
@@ -489,14 +437,12 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
           system_status: 4,
           mavlink_version: 3,
         },
-      }
+        { system_id: 1, component_id: 1, sequence: 0 }
+      )
 
-      const message2 = {
-        message_name: 'HEARTBEAT',
-        system_id: 1,
-        component_id: 1,
-        sequence: 1,
-        payload: {
+      const bytes2 = serializer.serialize(
+        'HEARTBEAT',
+        {
           type: 2,
           autopilot: 4,
           base_mode: 0,
@@ -504,10 +450,8 @@ describe('Snake Case Integration Tests - Message Parsing and Serialization', () 
           system_status: 4,
           mavlink_version: 3,
         },
-      }
-
-      const bytes1 = serializer.serialize(message1)
-      const bytes2 = serializer.serialize(message2)
+        { system_id: 1, component_id: 1, sequence: 1 }
+      )
 
       // Combine both messages
       const combinedBytes = new Uint8Array([...bytes1, ...bytes2])

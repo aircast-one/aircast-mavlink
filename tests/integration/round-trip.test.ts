@@ -1,10 +1,10 @@
 /**
- * Serializer ↔ Parser round-trip tests
+ * Serializer / Parser round-trip tests
  * Serialize a message, feed bytes to parser, verify payload matches.
  */
 import { CommonParser, CommonSerializer } from '../../src/generated/dialects/common/full'
 
-describe('Serializer ↔ Parser Round-Trip', () => {
+describe('Serializer / Parser Round-Trip', () => {
   let parser: CommonParser
   let serializer: CommonSerializer
 
@@ -13,20 +13,21 @@ describe('Serializer ↔ Parser Round-Trip', () => {
     serializer = new CommonSerializer()
   })
 
-  function roundTrip(message: Record<string, unknown> & { message_name: string }) {
-    const bytes = serializer.serialize(message)
+  function roundTrip(
+    messageName: string,
+    payload: Record<string, unknown>,
+    options: { system_id: number; component_id: number; sequence: number; protocol_version?: 1 | 2 }
+  ) {
+    const bytes = serializer.serialize(messageName, payload, options)
     const parsed = parser.parseBytes(bytes)
     expect(parsed).toHaveLength(1)
     return parsed[0]
   }
 
-  test('HEARTBEAT — all scalar fields', () => {
-    const message = {
-      message_name: 'HEARTBEAT',
-      system_id: 1,
-      component_id: 1,
-      sequence: 42,
-      payload: {
+  test('HEARTBEAT -- all scalar fields', () => {
+    const parsed = roundTrip(
+      'HEARTBEAT',
+      {
         type: 6,
         autopilot: 8,
         base_mode: 81,
@@ -34,9 +35,8 @@ describe('Serializer ↔ Parser Round-Trip', () => {
         system_status: 4,
         mavlink_version: 3,
       },
-    }
-
-    const parsed = roundTrip(message)
+      { system_id: 1, component_id: 1, sequence: 42 }
+    )
     expect(parsed.message_name).toBe('HEARTBEAT')
     expect(parsed.system_id).toBe(1)
     expect(parsed.sequence).toBe(42)
@@ -49,13 +49,10 @@ describe('Serializer ↔ Parser Round-Trip', () => {
     expect(parsed.payload.mavlink_version).toBe(3)
   })
 
-  test('ATTITUDE — float fields', () => {
-    const message = {
-      message_name: 'ATTITUDE',
-      system_id: 1,
-      component_id: 1,
-      sequence: 0,
-      payload: {
+  test('ATTITUDE -- float fields', () => {
+    const parsed = roundTrip(
+      'ATTITUDE',
+      {
         time_boot_ms: 100000,
         roll: 0.1,
         pitch: -0.2,
@@ -64,9 +61,8 @@ describe('Serializer ↔ Parser Round-Trip', () => {
         pitchspeed: -0.02,
         yawspeed: 0.0,
       },
-    }
-
-    const parsed = roundTrip(message)
+      { system_id: 1, component_id: 1, sequence: 0 }
+    )
     expect(parsed.message_name).toBe('ATTITUDE')
     expect(parsed.crc_ok).toBe(true)
     expect(parsed.payload.time_boot_ms).toBe(100000)
@@ -75,32 +71,25 @@ describe('Serializer ↔ Parser Round-Trip', () => {
     expect(parsed.payload.yaw).toBeCloseTo(3.14, 5)
   })
 
-  test('STATUSTEXT — char array (string field)', () => {
-    const message = {
-      message_name: 'STATUSTEXT',
-      system_id: 1,
-      component_id: 1,
-      sequence: 0,
-      payload: {
+  test('STATUSTEXT -- char array (string field)', () => {
+    const parsed = roundTrip(
+      'STATUSTEXT',
+      {
         severity: 6,
         text: 'Hello MAVLink',
       },
-    }
-
-    const parsed = roundTrip(message)
+      { system_id: 1, component_id: 1, sequence: 0 }
+    )
     expect(parsed.message_name).toBe('STATUSTEXT')
     expect(parsed.crc_ok).toBe(true)
     expect(parsed.payload.severity).toBe(6)
     expect(parsed.payload.text).toBe('Hello MAVLink')
   })
 
-  test('COMMAND_LONG — many float params', () => {
-    const message = {
-      message_name: 'COMMAND_LONG',
-      system_id: 255,
-      component_id: 190,
-      sequence: 100,
-      payload: {
+  test('COMMAND_LONG -- many float params', () => {
+    const parsed = roundTrip(
+      'COMMAND_LONG',
+      {
         target_system: 1,
         target_component: 1,
         command: 400,
@@ -113,9 +102,8 @@ describe('Serializer ↔ Parser Round-Trip', () => {
         param6: 0.0,
         param7: 0.0,
       },
-    }
-
-    const parsed = roundTrip(message)
+      { system_id: 255, component_id: 190, sequence: 100 }
+    )
     expect(parsed.message_name).toBe('COMMAND_LONG')
     expect(parsed.crc_ok).toBe(true)
     expect(parsed.system_id).toBe(255)
@@ -125,32 +113,25 @@ describe('Serializer ↔ Parser Round-Trip', () => {
     expect(parsed.payload.target_system).toBe(1)
   })
 
-  test('SYSTEM_TIME — uint64_t field', () => {
-    const message = {
-      message_name: 'SYSTEM_TIME',
-      system_id: 1,
-      component_id: 1,
-      sequence: 0,
-      payload: {
+  test('SYSTEM_TIME -- uint64_t field', () => {
+    const parsed = roundTrip(
+      'SYSTEM_TIME',
+      {
         time_unix_usec: BigInt('1620000000000000'),
         time_boot_ms: 500000,
       },
-    }
-
-    const parsed = roundTrip(message)
+      { system_id: 1, component_id: 1, sequence: 0 }
+    )
     expect(parsed.message_name).toBe('SYSTEM_TIME')
     expect(parsed.crc_ok).toBe(true)
     expect(parsed.payload.time_unix_usec).toBe(BigInt('1620000000000000'))
     expect(parsed.payload.time_boot_ms).toBe(500000)
   })
 
-  test('SYS_STATUS — many uint16 fields with extension fields', () => {
-    const message = {
-      message_name: 'SYS_STATUS',
-      system_id: 1,
-      component_id: 1,
-      sequence: 5,
-      payload: {
+  test('SYS_STATUS -- many uint16 fields with extension fields', () => {
+    const parsed = roundTrip(
+      'SYS_STATUS',
+      {
         onboard_control_sensors_present: 31,
         onboard_control_sensors_enabled: 15,
         onboard_control_sensors_health: 7,
@@ -165,9 +146,8 @@ describe('Serializer ↔ Parser Round-Trip', () => {
         errors_count3: 0,
         errors_count4: 0,
       },
-    }
-
-    const parsed = roundTrip(message)
+      { system_id: 1, component_id: 1, sequence: 5 }
+    )
     expect(parsed.message_name).toBe('SYS_STATUS')
     expect(parsed.crc_ok).toBe(true)
     expect(parsed.payload.voltage_battery).toBe(11800)
@@ -176,13 +156,10 @@ describe('Serializer ↔ Parser Round-Trip', () => {
     expect(parsed.payload.load).toBe(500)
   })
 
-  test('GPS_RAW_INT — mixed types with extensions defaulting to zero', () => {
-    const message = {
-      message_name: 'GPS_RAW_INT',
-      system_id: 1,
-      component_id: 1,
-      sequence: 0,
-      payload: {
+  test('GPS_RAW_INT -- mixed types with extensions defaulting to zero', () => {
+    const parsed = roundTrip(
+      'GPS_RAW_INT',
+      {
         time_usec: BigInt(0),
         fix_type: 3,
         lat: 473977420,
@@ -194,9 +171,8 @@ describe('Serializer ↔ Parser Round-Trip', () => {
         cog: 0,
         satellites_visible: 12,
       },
-    }
-
-    const parsed = roundTrip(message)
+      { system_id: 1, component_id: 1, sequence: 0 }
+    )
     expect(parsed.message_name).toBe('GPS_RAW_INT')
     expect(parsed.crc_ok).toBe(true)
     expect(parsed.payload.fix_type).toBe(3)
@@ -215,24 +191,20 @@ describe('Serializer ↔ Parser Round-Trip', () => {
       mavlink_version: 3,
     }
 
-    const v1 = roundTrip({
-      message_name: 'HEARTBEAT',
+    const v1 = roundTrip('HEARTBEAT', payload, {
       system_id: 1,
       component_id: 1,
       sequence: 0,
       protocol_version: 1,
-      payload,
     })
 
     parser.resetBuffer()
 
-    const v2 = roundTrip({
-      message_name: 'HEARTBEAT',
+    const v2 = roundTrip('HEARTBEAT', payload, {
       system_id: 1,
       component_id: 1,
       sequence: 0,
       protocol_version: 2,
-      payload,
     })
 
     expect(v1.payload).toEqual(v2.payload)

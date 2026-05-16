@@ -1,8 +1,9 @@
 // Shared type definitions for MAVLink protocol
-// These types are used by all dialect parsers
 
 /**
- * A fully parsed MAVLink message with decoded payload
+ * Base fields present on all parsed MAVLink messages.
+ * Dialect-specific parsers extend this with a discriminated union
+ * that narrows message_name and payload together.
  */
 export interface ParsedMAVLinkMessage {
   timestamp: number
@@ -25,15 +26,15 @@ export interface ParsedMAVLinkMessage {
 export interface MAVLinkFrame {
   magic: number
   length: number
-  incompatible_flags?: number // v2 only
-  compatible_flags?: number // v2 only
+  incompatible_flags?: number
+  compatible_flags?: number
   sequence: number
   system_id: number
   component_id: number
   message_id: number
   payload: Uint8Array
   checksum: number
-  signature?: Uint8Array // v2 only, 13 bytes
+  signature?: Uint8Array
   crc_ok?: boolean
   protocol_version?: 1 | 2
 }
@@ -54,6 +55,7 @@ export interface FieldDefinition {
 export interface MessageDefinition {
   id: number
   name: string
+  crcExtra: number
   fields: FieldDefinition[]
 }
 
@@ -78,32 +80,11 @@ export type PayloadObject = Record<string, FieldValue>
 export type DecodedValue = { value: FieldValue; bytesRead: number }
 
 /**
- * Interface for message parsing functionality
+ * Options for serializing a MAVLink message
  */
-export interface IMessageParser {
-  parseBytes(data: Uint8Array): ParsedMAVLinkMessage[]
-  decode(frame: MAVLinkFrame): ParsedMAVLinkMessage
-  resetBuffer(): void
-}
-
-/**
- * Interface for message serialization functionality
- */
-export interface IMessageSerializer {
-  serializeMessage(message: Record<string, unknown> & { message_name: string }): Uint8Array
-  completeMessage(
-    message: Record<string, unknown> & { message_name: string }
-  ): Record<string, unknown>
-}
-
-/**
- * Interface for message registry functionality
- */
-export interface IMessageRegistry {
-  getMessageDefinition(id: number): MessageDefinition | undefined
-  getMessageDefinitionByName(name: string): MessageDefinition | undefined
-  supportsMessage(messageId: number): boolean
-  supportsMessageName(messageName: string): boolean
-  getSupportedMessageIds(): number[]
-  getSupportedMessageNames(): string[]
+export interface SerializeOptions {
+  system_id: number
+  component_id: number
+  sequence: number
+  protocol_version?: 1 | 2
 }

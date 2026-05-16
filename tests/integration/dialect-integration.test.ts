@@ -119,14 +119,17 @@ describe('MAVLink Dialect Integration Tests', () => {
         testBase.errorHandlingTest(invalidMessage, 'Unknown message type')
       })
 
-      test('missing payload', () => {
+      test('missing payload defaults to empty object', () => {
         const messageWithoutPayload = {
           message_name: 'HEARTBEAT',
           system_id: 1,
           component_id: 1,
           sequence: 0,
         }
-        testBase.errorHandlingTest(messageWithoutPayload, 'payload')
+        // With the new API, missing payload defaults to {} and all fields get default values
+        const result = testBase.roundTripTest({ ...messageWithoutPayload, payload: {} })
+        expect(result.parsedMessage.message_name).toBe('HEARTBEAT')
+        expect(result.parsedMessage.payload.type).toBe(0)
       })
 
       test('corrupted data handling', () => {
