@@ -6,7 +6,7 @@ import {
 } from '../../src/generated/dialects/ardupilotmega/full'
 
 describe('REQUEST_DATA_STREAM Integration Tests', () => {
-  const SITL_HOST = process.env.SITL_HOST || 'dev.aircast.one'
+  const SITL_HOST = process.env.SITL_HOST || 'sitl.aircast.one'
   const SITL_PORT = parseInt(process.env.SITL_PORT || '5760')
   const TEST_TIMEOUT = 30000 // 30 seconds for integration tests
 
